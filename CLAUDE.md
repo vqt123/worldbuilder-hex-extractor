@@ -14,6 +14,12 @@
 ### Mandatory Requirements
 **BEFORE ANY ACTION**: Check these guidelines and acknowledge compliance.
 
+**TODO LIST CREATION**: ALWAYS create a comprehensive todo list that includes ALL mandatory requirements:
+- Development tasks
+- END-TO-END TESTING tasks (screenshots, analysis, pass/fail assessment)
+- TASK COMPLETION tasks (update CLAUDE.md with learnings)
+- SERVER MANAGEMENT tasks (proper nohup/PID tracking when needed)
+
 **END-TO-END TESTING**: Every completed task set MUST include:
 - Screenshots for visual components (saved in `screenshots/` folder)
 - Screenshot analysis verifying expected behavior
