@@ -17,24 +17,34 @@
 **TODO LIST CREATION**: ALWAYS create a comprehensive todo list that includes ALL mandatory requirements:
 - Development tasks
 - END-TO-END TESTING tasks (screenshots, analysis, pass/fail assessment)
-- TASK COMPLETION tasks (update CLAUDE.md with learnings)
+- TASK COMPLETION tasks (update project-notes.md with implementation details)
 - SERVER MANAGEMENT tasks (proper nohup/PID tracking when needed)
 
 **HIDDEN FILES/DIRECTORIES**: ALWAYS check for hidden files and directories (.claude, .git, etc.) using `ls -la` or `find . -name ".*"` rather than relying solely on Glob/LS tools which may miss them.
 
-**END-TO-END TESTING**: Every completed task set MUST include:
+**END-TO-END TESTING**: When tools are available:
 - Screenshots for visual components (saved in `screenshots/` folder)
 - Screenshot analysis verifying expected behavior
 - Clear pass/fail assessment for each major feature
-- Apply after substantial development work, before marking tasks complete
+- If screenshot tools are unavailable, STOP and ask user how to proceed
+- NEVER create workarounds or sample files to demonstrate functionality
 
-**TASK COMPLETION**: Always end tasks with updates to CLAUDE.md documenting operational learnings.
+**TASK COMPLETION**: Always end tasks with updates to project-notes.md documenting implementation details and operational learnings to CLAUDE.md only for process improvements.
 
 ### Prohibited Actions
 **NEVER USE**: 
 - Arbitrary timeouts in bash commands
 - Background processes with `&` operator
 - Simple scripts as workarounds to avoid running live servers
+- Workarounds or sample files when tools are unavailable
+- One-off demonstration files instead of addressing core issues
+
+### Error Handling Protocol
+**WHEN TOOLS ARE UNAVAILABLE OR ERRORS OCCUR**:
+1. STOP immediately - do not create workarounds
+2. Report the specific issue to the user
+3. Ask how to proceed or what alternative approach to take
+4. Document the limitation in operational learnings
 
 ### Server Management Solution
 Use `nohup` with PID tracking for proper server lifecycle management:
@@ -68,39 +78,18 @@ When users ask about Claude Code features, ALWAYS reference local files in `clau
 
 **All Files**: `overview.md`, `quickstart.md`, `cli-reference.md`, `interactive-mode.md`, `common-workflows.md`, `settings.md`, `memory.md`, `slash-commands.md`, `hooks.md`, `ide-integrations.md`, `mcp.md`, `github-actions.md`, `sdk.md`, `iam.md`, `security.md`, `third-party-integrations.md`, `amazon-bedrock.md`, `google-vertex-ai.md`, `corporate-proxy.md`, `llm-gateway.md`, `devcontainer.md`, `monitoring-usage.md`, `costs.md`, `troubleshooting.md`
 
-## Operational Learnings
+## Process Improvements
 
-### Redundancy Consolidation (2025-07-09)
-**Issue**: Duplicate requirements listed in both CLAUDE.md and .claude/compliance_hook.sh created maintenance burden and potential inconsistencies.
+### Documentation Structure (2025-07-09)
+**Improvement**: Separated operational guidelines from application-specific content.
 
-**Solution**: 
-- Centralized all requirements in CLAUDE.md as single source of truth
-- Updated compliance_hook.sh to reference CLAUDE.md instead of duplicating requirements
-- Reduced hook script from 25 lines to 21 lines by removing duplicate text
+**Implementation**: 
+- CLAUDE.md contains only general operational guidelines
+- project-notes.md contains application-specific implementation details
+- Error handling protocol: stop and ask when tools unavailable, no workarounds
 
-**Outcome**: Eliminated redundancy while maintaining hook functionality. Future requirement changes only need to be made in CLAUDE.md.
+**Outcome**: Cleaner separation of concerns and better operational discipline.
 
-### Multiplayer Game Implementation (2025-07-09)
-**Task**: Create first step of simple realtime multiplayer game with 2D grid movement.
+---
 
-**Implementation**:
-- HTML5 Canvas-based 2D grid rendering system (800x600px, 40px grid cells)
-- WebSocket server using Node.js `ws` library for real-time communication
-- Client-side JavaScript with WASD/Arrow key controls and click-to-move
-- Game state synchronization across all connected players
-- Collision detection preventing multiple players on same grid cell
-- Player color assignment system with unique colors per player
-- Connection status indicators and player list UI
-
-**Technical Details**:
-- Server: Node.js with WebSocket on port 3000, serves static files and game logic
-- Client: Canvas rendering with 60fps game loop, event-driven movement
-- Protocol: JSON message types (welcome, gameState, playerJoined, playerLeft, playerMoved)
-- Grid: 20x15 cells with boundary enforcement and collision detection
-
-**Testing Results**: PASS - Screenshot analysis confirmed proper grid rendering, player spawning, WebSocket connectivity, and UI functionality.
-
-**Key Learnings**:
-- nohup/PID tracking essential for proper server lifecycle management
-- Canvas-based games require careful event handling for smooth multiplayer experience
-- WebSocket connection state management crucial for reconnection handling
+*Application-specific implementation details and learnings are documented in project-notes.md*
