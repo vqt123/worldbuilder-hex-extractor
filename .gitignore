@@ -1,5 +1,34 @@
-node_modules/
-screenshots/
+# Application Files (exclude from operational commits)
+*.js
+*.html
+*.css
+package.json
+package-lock.json
+README.md
+
+# Runtime Files
 server.log
 server.pid
+*.pid
 *.log
+
+# Dependencies
+node_modules/
+
+# Testing Artifacts
+screenshots/
+
+# Temporary Files
+/tmp/
+*.tmp
+*.temp
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Files
+.DS_Store
+Thumbs.db

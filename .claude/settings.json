@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": ".claude/compliance_hook.sh",
+        "matcher": "*"
+      }
+    ]
+  }
+}

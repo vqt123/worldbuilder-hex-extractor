@@ -1,5 +1,14 @@
 # Project Memory - Claude Code Documentation
 
+## 🚨 MANDATORY COMPLIANCE CHECK
+**BEFORE ANY ACTION**: Acknowledge these requirements by stating "OPERATIONAL GUIDELINES ACKNOWLEDGED"
+
+**REQUIRED ACKNOWLEDGMENTS**:
+- [ ] END-TO-END TESTING: Screenshots + analysis for visual components
+- [ ] TASK COMPLETION: Update CLAUDE.md with operational learnings  
+- [ ] SERVER MANAGEMENT: Use proper nohup/PID tracking
+- [ ] ERROR HANDLING: Stop immediately on errors
+
 ## Operational Guidelines for All Projects
 
 ### Mandatory Requirements
