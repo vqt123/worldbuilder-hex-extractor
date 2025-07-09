@@ -90,6 +90,28 @@ When users ask about Claude Code features, ALWAYS reference local files in `clau
 
 **Outcome**: Cleaner separation of concerns and better operational discipline.
 
+### Browser Testing with Playwright (2025-07-09)
+**Improvement**: For browser-based projects, always use Playwright instead of system screenshot tools.
+
+**Implementation**: 
+- Install @playwright/test for browser testing
+- Configure headless mode with proper reporter settings
+- Set HTML reporter to `open: 'never'` to prevent workflow lockups
+- Use line reporter for clean terminal output
+- Add npm test script for easy testing
+
+**Outcome**: Reliable browser testing without disrupting development workflow.
+
+### Port Conflict Resolution (2025-07-09)
+**Improvement**: Always check for and resolve port conflicts when starting servers.
+
+**Implementation**: 
+- Use `lsof -ti:PORT | xargs kill -9` to kill processes on occupied ports
+- Verify server startup with curl/HTTP requests
+- Check server logs for confirmation of successful startup
+
+**Outcome**: Prevents EADDRINUSE errors and ensures clean server restarts.
+
 ---
 
 *Application-specific implementation details and learnings are documented in project-notes.md*
