@@ -20,6 +20,8 @@
 - TASK COMPLETION tasks (update CLAUDE.md with learnings)
 - SERVER MANAGEMENT tasks (proper nohup/PID tracking when needed)
 
+**HIDDEN FILES/DIRECTORIES**: ALWAYS check for hidden files and directories (.claude, .git, etc.) using `ls -la` or `find . -name ".*"` rather than relying solely on Glob/LS tools which may miss them.
+
 **END-TO-END TESTING**: Every completed task set MUST include:
 - Screenshots for visual components (saved in `screenshots/` folder)
 - Screenshot analysis verifying expected behavior
@@ -65,3 +67,15 @@ When users ask about Claude Code features, ALWAYS reference local files in `clau
 - proxy, corporate → `corporate-proxy.md`
 
 **All Files**: `overview.md`, `quickstart.md`, `cli-reference.md`, `interactive-mode.md`, `common-workflows.md`, `settings.md`, `memory.md`, `slash-commands.md`, `hooks.md`, `ide-integrations.md`, `mcp.md`, `github-actions.md`, `sdk.md`, `iam.md`, `security.md`, `third-party-integrations.md`, `amazon-bedrock.md`, `google-vertex-ai.md`, `corporate-proxy.md`, `llm-gateway.md`, `devcontainer.md`, `monitoring-usage.md`, `costs.md`, `troubleshooting.md`
+
+## Operational Learnings
+
+### Redundancy Consolidation (2025-07-09)
+**Issue**: Duplicate requirements listed in both CLAUDE.md and .claude/compliance_hook.sh created maintenance burden and potential inconsistencies.
+
+**Solution**: 
+- Centralized all requirements in CLAUDE.md as single source of truth
+- Updated compliance_hook.sh to reference CLAUDE.md instead of duplicating requirements
+- Reduced hook script from 25 lines to 21 lines by removing duplicate text
+
+**Outcome**: Eliminated redundancy while maintaining hook functionality. Future requirement changes only need to be made in CLAUDE.md.

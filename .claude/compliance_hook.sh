@@ -11,11 +11,7 @@ if ! grep -q "OPERATIONAL_GUIDELINES_ACKNOWLEDGED" "$COMPLIANCE_FILE" 2>/dev/nul
     echo "REQUIRED: Check CLAUDE.md guidelines and acknowledge compliance by stating:"
     echo "\"OPERATIONAL GUIDELINES ACKNOWLEDGED\""
     echo ""
-    echo "Mandatory requirements:"
-    echo "- END-TO-END TESTING: Screenshots + analysis for visual components"
-    echo "- TASK COMPLETION: Update CLAUDE.md with operational learnings"
-    echo "- SERVER MANAGEMENT: Use proper nohup/PID tracking"
-    echo "- ERROR HANDLING: Stop immediately on errors"
+    echo "📋 See CLAUDE.md for complete operational guidelines and requirements"
     echo ""
     exit 1
 fi
