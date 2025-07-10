@@ -40,7 +40,6 @@ const API_BASE = 'http://localhost:3002';
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [hexExtraction, setHexExtraction] = useState<string | null>(null);
   const [selectedHexCoords, setSelectedHexCoords] = useState<HexCoordinates | null>(null);
   const [showContributionModal, setShowContributionModal] = useState(false);
@@ -56,7 +55,6 @@ function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [username, setUsername] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -134,31 +132,6 @@ function App() {
     }
   };
 
-  const handleImageUpload = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    
-    if (!fileInputRef.current?.files?.[0]) return;
-
-    setUploading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/admin/upload`, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (response.ok) {
-        await fetchImages();
-        event.currentTarget.reset();
-      } else {
-        console.error('Upload failed');
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const loadImageWithHexOverlay = (image: ImageData) => {
     console.log('Setting selected image:', image);
@@ -574,33 +547,6 @@ function App() {
       <div className="main-container">
         {/* Left Panel */}
         <div className="left-panel">
-          {/* Upload Form */}
-          <form onSubmit={handleImageUpload} className="upload-form">
-            <div>
-              <label htmlFor="image">Select Image:</label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                id="image"
-                name="image"
-                accept="image/*"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="description">Description:</label>
-              <textarea
-                id="description"
-                name="description"
-                rows={3}
-                placeholder="Describe this world region..."
-              />
-            </div>
-            <button type="submit" disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Upload Image'}
-            </button>
-          </form>
-
           {/* Image List */}
           <div className="image-list">
             <h2>Uploaded Images</h2>

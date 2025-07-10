@@ -3,7 +3,39 @@
 ## Project Overview
 A hex-grid based collaborative world-building system where multiple users can contribute descriptions and images to different regions of fantasy world maps.
 
-## Recent Implementation: Multi-User Authentication System
+## Recent Implementation: Form Removal from Main Page
+
+### Implementation Date
+July 10, 2025
+
+### Change Description
+Removed the redundant upload form from the top-left panel of the main page since the same functionality is available in the contribution modal.
+
+### Technical Details
+- **Files Modified**: `/frontend/src/App.tsx`
+- **Elements Removed**: 
+  - Upload form component (lines 578-602)
+  - `handleImageUpload` function
+  - `uploading` state variable
+  - `fileInputRef` reference
+- **UI Impact**: Left panel now only shows "Uploaded Images" section
+- **Functionality**: Upload functionality remains available through the contribution modal
+
+### Testing Results
+✅ **Form removal verified**: Screenshot confirms form is no longer visible in top-left
+✅ **Application stability**: App continues to function normally
+✅ **Clean UI**: Simplified interface with reduced visual clutter
+✅ **Modal functionality**: Upload form in modal remains fully functional
+
+### User Experience Impact
+- **Simplified interface**: Removes redundant upload form from main view
+- **Consistent workflow**: Users upload images via modal when contributing to specific hex regions
+- **Cleaner left panel**: More space for viewing uploaded images list
+- **No functionality loss**: All upload capabilities preserved in modal
+
+---
+
+## Previous Implementation: Multi-User Authentication System
 
 ### Implementation Date
 July 10, 2025
