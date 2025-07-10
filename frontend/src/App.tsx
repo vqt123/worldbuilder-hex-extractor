@@ -15,6 +15,11 @@ interface HexCoordinates {
   r: number;
 }
 
+interface User {
+  id: string;
+  username: string;
+}
+
 interface HexContribution {
   id: string;
   imageId: string;
@@ -23,6 +28,7 @@ interface HexContribution {
   description: string;
   contributedImageFilename?: string;
   contributorName?: string;
+  userId: string;
   contributedAt: Date;
   status: 'pending' | 'approved' | 'rejected';
   parentImageId?: string;
@@ -39,16 +45,84 @@ function App() {
   const [selectedHexCoords, setSelectedHexCoords] = useState<HexCoordinates | null>(null);
   const [showContributionModal, setShowContributionModal] = useState(false);
   const [existingContribution, setExistingContribution] = useState<HexContribution | null>(null);
+  const [allHexContributions, setAllHexContributions] = useState<HexContribution[]>([]);
+  const [userHexContribution, setUserHexContribution] = useState<HexContribution | null>(null);
   const [hexContributions, setHexContributions] = useState<HexContribution[]>([]);
   const [hexContext, setHexContext] = useState<any>(null);
   const [copySuccess, setCopySuccess] = useState<string>('');
   const [copyImageSuccess, setCopyImageSuccess] = useState<string>('');
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [username, setUsername] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     fetchImages();
+    checkSession();
   }, []);
+
+  const checkSession = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/session`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.authenticated) {
+        setUser(data.user);
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Session check failed:', error);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim()) return;
+
+    setIsLoggingIn(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: username.trim() }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setShowLoginModal(false);
+        setUsername('');
+      } else {
+        console.error('Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const fetchImages = async () => {
     try {
@@ -318,21 +392,44 @@ function App() {
     
     setSelectedHexCoords(hexCoords);
 
-    // Check if there's an existing contribution for this hex
+    // Check if there are existing contributions for this hex
     try {
       const response = await fetch(
         `${API_BASE}/api/hex-content/${selectedImage.id}/${hexCoords.q}/${hexCoords.r}`
       );
       
       if (response.ok) {
-        const contribution = await response.json();
-        setExistingContribution(contribution);
+        const data = await response.json();
+        setAllHexContributions(data.contributions);
+        setExistingContribution(data.contributions[0] || null); // For backward compatibility
       } else {
+        setAllHexContributions([]);
         setExistingContribution(null);
       }
     } catch (error) {
-      console.log('No existing contribution found for this hex');
+      console.log('No existing contributions found for this hex');
+      setAllHexContributions([]);
       setExistingContribution(null);
+    }
+
+    // If user is authenticated, check for their specific contribution
+    if (isAuthenticated) {
+      try {
+        const userResponse = await fetch(
+          `${API_BASE}/api/hex-content/${selectedImage.id}/${hexCoords.q}/${hexCoords.r}/user`,
+          { credentials: 'include' }
+        );
+        
+        if (userResponse.ok) {
+          const userContribution = await userResponse.json();
+          setUserHexContribution(userContribution);
+        } else {
+          setUserHexContribution(null);
+        }
+      } catch (error) {
+        console.log('No user contribution found for this hex');
+        setUserHexContribution(null);
+      }
     }
 
     // Fetch hex context (parent/sibling info)
@@ -377,6 +474,11 @@ function App() {
     event.preventDefault();
     if (!selectedImage || !selectedHexCoords) return;
 
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
     const formData = new FormData(event.currentTarget);
     formData.append('imageId', selectedImage.id);
     formData.append('q', selectedHexCoords.q.toString());
@@ -385,7 +487,8 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/api/hex-contributions`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -393,6 +496,8 @@ function App() {
         setShowContributionModal(false);
         // Refresh contributions for this image
         fetchHexContributions(selectedImage.id);
+      } else if (response.status === 401) {
+        setShowLoginModal(true);
       } else {
         console.error('Failed to submit contribution');
       }
@@ -448,7 +553,23 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Worldbuilder Admin</h1>
+      <header className="app-header">
+        <h1>Worldbuilder Admin</h1>
+        <div className="user-info">
+          {isAuthenticated ? (
+            <div className="user-controls">
+              <span>Welcome, {user?.username}!</span>
+              <button onClick={handleLogout} className="logout-button">
+                Logout
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setShowLoginModal(true)} className="login-button">
+              Login
+            </button>
+          )}
+        </div>
+      </header>
       
       <div className="main-container">
         {/* Left Panel */}
@@ -649,63 +770,132 @@ function App() {
                 </div>
               )}
 
-              {/* Existing Contribution */}
-              {existingContribution && (
-                <div className="existing-contribution">
-                  <h3>Existing Contribution</h3>
-                  <p><strong>Description:</strong> {existingContribution.description}</p>
-                  <p><strong>Contributor:</strong> {existingContribution.contributorName}</p>
-                  <p><strong>Status:</strong> {existingContribution.status}</p>
-                  {existingContribution.contributedImageFilename && (
-                    <img 
-                      src={`${API_BASE}/api/contributions/${existingContribution.contributedImageFilename}`}
-                      alt="Contributed content"
-                      style={{ maxWidth: '200px' }}
-                    />
-                  )}
+              {/* All User Contributions */}
+              {allHexContributions.length > 0 && (
+                <div className="all-contributions">
+                  <h3>All Contributions ({allHexContributions.length})</h3>
+                  {allHexContributions.map((contribution, index) => (
+                    <div key={contribution.id} className={`contribution-item ${contribution.userId === user?.id ? 'user-contribution' : ''}`}>
+                      <div className="contribution-header">
+                        <strong>{contribution.contributorName || 'Anonymous'}</strong>
+                        <span className="contribution-date">
+                          {new Date(contribution.contributedAt).toLocaleDateString()}
+                        </span>
+                        {contribution.userId === user?.id && (
+                          <span className="user-badge">Your contribution</span>
+                        )}
+                      </div>
+                      <p className="contribution-description">{contribution.description}</p>
+                      {contribution.contributedImageFilename && (
+                        <img 
+                          src={`${API_BASE}/api/contributions/${contribution.contributedImageFilename}`}
+                          alt="Contributed content"
+                          className="contribution-image"
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {/* Contribution Form */}
-              <form onSubmit={handleContributionSubmit} className="contribution-form">
+              {/* Authentication Required Message */}
+              {!isAuthenticated && (
+                <div className="auth-required">
+                  <h3>Login Required</h3>
+                  <p>You must be logged in to contribute to hex regions.</p>
+                  <button onClick={() => setShowLoginModal(true)} className="login-prompt-button">
+                    Login to Contribute
+                  </button>
+                </div>
+              )}
+
+              {/* Contribution Form - Only for authenticated users */}
+              {isAuthenticated && (
+                <form onSubmit={handleContributionSubmit} className="contribution-form">
+                  <h3>{userHexContribution ? 'Edit Your Contribution' : 'Add Your Contribution'}</h3>
+                  
+                  <div className="form-group">
+                    <label htmlFor="description">Description:</label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      rows={4}
+                      placeholder="Describe what's in this hex region..."
+                      defaultValue={userHexContribution?.description || ''}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="contributedImage">Upload Zoomed Image (optional):</label>
+                    <input
+                      type="file"
+                      id="contributedImage"
+                      name="contributedImage"
+                      accept="image/*"
+                    />
+                    <small>Upload a more detailed image of this hex region</small>
+                    {userHexContribution?.contributedImageFilename && (
+                      <div className="current-image">
+                        <p>Current image:</p>
+                        <img 
+                          src={`${API_BASE}/api/contributions/${userHexContribution.contributedImageFilename}`}
+                          alt="Your current contribution"
+                          style={{ maxWidth: '200px' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-actions">
+                    <button type="button" onClick={() => setShowContributionModal(false)}>
+                      Cancel
+                    </button>
+                    <button type="submit">
+                      {userHexContribution ? 'Update Contribution' : 'Submit Contribution'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
+          <div className="modal-content login-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Login to Contribute</h2>
+              <button 
+                className="close-button"
+                onClick={() => setShowLoginModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>Please enter a username to start contributing to the world map.</p>
+              <form onSubmit={handleLogin} className="login-form">
                 <div className="form-group">
-                  <label htmlFor="contributorName">Your Name:</label>
+                  <label htmlFor="username">Username:</label>
                   <input
                     type="text"
-                    id="contributorName"
-                    name="contributorName"
-                    placeholder="Enter your name (optional)"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="description">Description:</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    rows={4}
-                    placeholder="Describe what's in this hex region..."
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter any username"
                     required
+                    autoFocus
                   />
                 </div>
-
-                <div className="form-group">
-                  <label htmlFor="contributedImage">Upload Zoomed Image (optional):</label>
-                  <input
-                    type="file"
-                    id="contributedImage"
-                    name="contributedImage"
-                    accept="image/*"
-                  />
-                  <small>Upload a more detailed image of this hex region</small>
-                </div>
-
                 <div className="form-actions">
-                  <button type="button" onClick={() => setShowContributionModal(false)}>
+                  <button type="button" onClick={() => setShowLoginModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit">
-                    Submit Contribution
+                  <button type="submit" disabled={isLoggingIn || !username.trim()}>
+                    {isLoggingIn ? 'Logging in...' : 'Login'}
                   </button>
                 </div>
               </form>

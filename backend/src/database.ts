@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
+import crypto from 'crypto';
 
 export interface ImageRecord {
   id: string;
@@ -10,6 +11,12 @@ export interface ImageRecord {
   uploadedAt: Date;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  createdAt: Date;
+}
+
 export interface HexContribution {
   id: string;
   imageId: string;
@@ -17,7 +24,8 @@ export interface HexContribution {
   r: number;
   description: string;
   contributedImageFilename?: string;
-  contributorName?: string;
+  contributorName?: string; // Keep for backward compatibility
+  userId: string;
   contributedAt: Date;
   status: 'pending' | 'approved' | 'rejected';
   parentImageId?: string;
@@ -47,6 +55,15 @@ export class Database {
       `);
 
       this.db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          username TEXT UNIQUE NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Check if hex_regions table exists and needs migration
+      this.db.run(`
         CREATE TABLE IF NOT EXISTS hex_regions (
           id TEXT PRIMARY KEY,
           image_id TEXT NOT NULL,
@@ -55,14 +72,49 @@ export class Database {
           description TEXT,
           contributed_image_filename TEXT,
           contributor_name TEXT,
+          user_id TEXT,
           contributed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           status TEXT DEFAULT 'pending',
           parent_image_id TEXT,
           zoom_level INTEGER DEFAULT 1,
           FOREIGN KEY (image_id) REFERENCES images (id),
-          UNIQUE(image_id, q, r)
+          FOREIGN KEY (user_id) REFERENCES users (id)
         )
       `);
+
+      // Migration: Remove UNIQUE constraint if it exists (SQLite doesn't support DROP CONSTRAINT)
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS hex_regions_new (
+          id TEXT PRIMARY KEY,
+          image_id TEXT NOT NULL,
+          q INTEGER NOT NULL,
+          r INTEGER NOT NULL,
+          description TEXT,
+          contributed_image_filename TEXT,
+          contributor_name TEXT,
+          user_id TEXT,
+          contributed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          status TEXT DEFAULT 'pending',
+          parent_image_id TEXT,
+          zoom_level INTEGER DEFAULT 1,
+          FOREIGN KEY (image_id) REFERENCES images (id),
+          FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+      `);
+
+      // Copy existing data to new table if migration needed
+      this.db.run(`
+        INSERT OR IGNORE INTO hex_regions_new 
+        SELECT id, image_id, q, r, description, contributed_image_filename, 
+               contributor_name, NULL as user_id, contributed_at, status, 
+               parent_image_id, zoom_level 
+        FROM hex_regions
+      `);
+
+      // Replace old table with new one
+      this.db.run(`DROP TABLE IF EXISTS hex_regions_old`);
+      this.db.run(`ALTER TABLE hex_regions RENAME TO hex_regions_old`);
+      this.db.run(`ALTER TABLE hex_regions_new RENAME TO hex_regions`);
     });
   }
 
@@ -120,14 +172,69 @@ export class Database {
     });
   }
 
+  // User management methods
+  async createUser(username: string): Promise<User> {
+    return new Promise((resolve, reject) => {
+      const userId = crypto.randomUUID();
+      this.db.run(
+        'INSERT INTO users (id, username) VALUES (?, ?)',
+        [userId, username],
+        function(err) {
+          if (err) reject(err);
+          else resolve({
+            id: userId,
+            username,
+            createdAt: new Date()
+          });
+        }
+      );
+    });
+  }
+
+  async getUserByUsername(username: string): Promise<User | null> {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        'SELECT * FROM users WHERE username = ?',
+        [username],
+        (err, row: any) => {
+          if (err) reject(err);
+          else if (!row) resolve(null);
+          else resolve({
+            id: row.id,
+            username: row.username,
+            createdAt: new Date(row.created_at)
+          });
+        }
+      );
+    });
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        'SELECT * FROM users WHERE id = ?',
+        [id],
+        (err, row: any) => {
+          if (err) reject(err);
+          else if (!row) resolve(null);
+          else resolve({
+            id: row.id,
+            username: row.username,
+            createdAt: new Date(row.created_at)
+          });
+        }
+      );
+    });
+  }
+
   // Hex contribution methods
   async saveHexContribution(contribution: HexContribution): Promise<void> {
     return new Promise((resolve, reject) => {
       this.db.run(
         `INSERT INTO hex_regions (
           id, image_id, q, r, description, contributed_image_filename,
-          contributor_name, status, parent_image_id, zoom_level
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          contributor_name, user_id, status, parent_image_id, zoom_level
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           contribution.id,
           contribution.imageId,
@@ -136,6 +243,7 @@ export class Database {
           contribution.description,
           contribution.contributedImageFilename,
           contribution.contributorName,
+          contribution.userId,
           contribution.status,
           contribution.parentImageId,
           contribution.zoomLevel
@@ -151,7 +259,7 @@ export class Database {
   async getHexContribution(imageId: string, q: number, r: number): Promise<HexContribution | null> {
     return new Promise((resolve, reject) => {
       this.db.get(
-        'SELECT * FROM hex_regions WHERE image_id = ? AND q = ? AND r = ?',
+        'SELECT * FROM hex_regions WHERE image_id = ? AND q = ? AND r = ? LIMIT 1',
         [imageId, q, r],
         (err, row: any) => {
           if (err) reject(err);
@@ -164,6 +272,7 @@ export class Database {
             description: row.description,
             contributedImageFilename: row.contributed_image_filename,
             contributorName: row.contributor_name,
+            userId: row.user_id,
             contributedAt: new Date(row.contributed_at),
             status: row.status,
             parentImageId: row.parent_image_id,
@@ -189,11 +298,67 @@ export class Database {
             description: row.description,
             contributedImageFilename: row.contributed_image_filename,
             contributorName: row.contributor_name,
+            userId: row.user_id,
             contributedAt: new Date(row.contributed_at),
             status: row.status,
             parentImageId: row.parent_image_id,
             zoomLevel: row.zoom_level
           })));
+        }
+      );
+    });
+  }
+
+  // Get all contributions for a specific hex (multi-user support)
+  async getAllHexContributions(imageId: string, q: number, r: number): Promise<HexContribution[]> {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        'SELECT * FROM hex_regions WHERE image_id = ? AND q = ? AND r = ? ORDER BY contributed_at DESC',
+        [imageId, q, r],
+        (err, rows: any[]) => {
+          if (err) reject(err);
+          else resolve(rows.map(row => ({
+            id: row.id,
+            imageId: row.image_id,
+            q: row.q,
+            r: row.r,
+            description: row.description,
+            contributedImageFilename: row.contributed_image_filename,
+            contributorName: row.contributor_name,
+            userId: row.user_id,
+            contributedAt: new Date(row.contributed_at),
+            status: row.status,
+            parentImageId: row.parent_image_id,
+            zoomLevel: row.zoom_level
+          })));
+        }
+      );
+    });
+  }
+
+  // Get user's specific contribution for a hex
+  async getUserHexContribution(imageId: string, q: number, r: number, userId: string): Promise<HexContribution | null> {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        'SELECT * FROM hex_regions WHERE image_id = ? AND q = ? AND r = ? AND user_id = ?',
+        [imageId, q, r, userId],
+        (err, row: any) => {
+          if (err) reject(err);
+          else if (!row) resolve(null);
+          else resolve({
+            id: row.id,
+            imageId: row.image_id,
+            q: row.q,
+            r: row.r,
+            description: row.description,
+            contributedImageFilename: row.contributed_image_filename,
+            contributorName: row.contributor_name,
+            userId: row.user_id,
+            contributedAt: new Date(row.contributed_at),
+            status: row.status,
+            parentImageId: row.parent_image_id,
+            zoomLevel: row.zoom_level
+          });
         }
       );
     });
