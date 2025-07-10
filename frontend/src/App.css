@@ -189,3 +189,12 @@
   border: 1px solid #ccc;
   object-fit: contain;
 }
+
+.hex-coordinates {
+  background-color: #5a5e62;
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  text-align: left;
+}

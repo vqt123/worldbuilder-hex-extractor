@@ -22,6 +22,7 @@ function App() {
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [uploading, setUploading] = useState(false);
   const [hexExtraction, setHexExtraction] = useState<string | null>(null);
+  const [selectedHexCoords, setSelectedHexCoords] = useState<HexCoordinates | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -188,6 +189,9 @@ function App() {
       r: Math.round(hexCoords.r / scale)
     };
 
+    console.log('Clicked hex coordinates:', originalHexCoords);
+    setSelectedHexCoords(originalHexCoords);
+
     try {
       const response = await fetch(
         `${API_BASE}/api/images/${selectedImage.id}/hex/${originalHexCoords.q}/${originalHexCoords.r}`
@@ -265,9 +269,12 @@ function App() {
           </div>
 
           {/* Hex Extraction Result */}
-          {hexExtraction && (
+          {hexExtraction && selectedHexCoords && (
             <div className="hex-extraction">
               <h3>Extracted Hex Region</h3>
+              <div className="hex-coordinates">
+                <strong>Coordinates:</strong> Q: {selectedHexCoords.q}, R: {selectedHexCoords.r}
+              </div>
               <img src={hexExtraction} alt="Extracted hex region" />
             </div>
           )}

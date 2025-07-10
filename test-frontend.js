@@ -27,6 +27,17 @@ async function testFrontend() {
       
       // Take screenshot with hex grid
       await page.screenshot({ path: 'frontend-hex-grid.png', fullPage: false });
+      
+      // Test clicking on hex grid canvas
+      const canvas = page.locator('canvas');
+      if (await canvas.isVisible()) {
+        console.log('Clicking on hex grid canvas...');
+        await canvas.click({ position: { x: 200, y: 200 } });
+        await page.waitForTimeout(2000);
+        
+        // Take screenshot with extracted hex and coordinates
+        await page.screenshot({ path: 'frontend-hex-extraction.png', fullPage: false });
+      }
     }
     
     // Check if images section exists
