@@ -15,6 +15,20 @@ interface HexCoordinates {
   r: number;
 }
 
+interface HexContribution {
+  id: string;
+  imageId: string;
+  q: number;
+  r: number;
+  description: string;
+  contributedImageFilename?: string;
+  contributorName?: string;
+  contributedAt: Date;
+  status: 'pending' | 'approved' | 'rejected';
+  parentImageId?: string;
+  zoomLevel: number;
+}
+
 const API_BASE = 'http://localhost:3002';
 
 function App() {
@@ -23,6 +37,10 @@ function App() {
   const [uploading, setUploading] = useState(false);
   const [hexExtraction, setHexExtraction] = useState<string | null>(null);
   const [selectedHexCoords, setSelectedHexCoords] = useState<HexCoordinates | null>(null);
+  const [showContributionModal, setShowContributionModal] = useState(false);
+  const [existingContribution, setExistingContribution] = useState<HexContribution | null>(null);
+  const [hexContributions, setHexContributions] = useState<HexContribution[]>([]);
+  const [hexContext, setHexContext] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -71,6 +89,76 @@ function App() {
     setSelectedImage(image);
     setHexExtraction(null);
     setSelectedHexCoords(null);
+  };
+
+  const drawHexGrid = (ctx: CanvasRenderingContext2D, width: number, height: number, scale: number) => {
+    const backendHexSize = 50; // Use same hex size as backend
+    const displayHexSize = backendHexSize * scale; // Scale for display
+    
+    // Calculate original image dimensions
+    const originalWidth = width / scale;
+    const originalHeight = height / scale;
+    
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
+
+    console.log('Drawing hex grid with backend hexSize:', backendHexSize, 'display hexSize:', displayHexSize);
+
+    // Draw hex grid using same logic as backend - start from 0,0 and go in positive directions
+    // Calculate reasonable grid bounds
+    const maxQ = Math.ceil(originalWidth / (backendHexSize * 1.5)) + 2;
+    const maxR = Math.ceil(originalHeight / (backendHexSize * Math.sqrt(3))) + 2;
+    
+    for (let q = -2; q <= maxQ; q++) {
+      for (let r = -2; r <= maxR; r++) {
+        // Calculate center in original image coordinates using backend formula
+        const originalCenter = hexToPixel(q, r, backendHexSize);
+        
+        // Scale to display coordinates
+        const displayCenter = {
+          x: originalCenter.x * scale,
+          y: originalCenter.y * scale
+        };
+        
+        // Check if hex is within canvas bounds (with some margin)
+        if (displayCenter.x >= -displayHexSize && displayCenter.x <= width + displayHexSize &&
+            displayCenter.y >= -displayHexSize && displayCenter.y <= height + displayHexSize) {
+          
+          // Check if this hex has a contribution
+          const hasContribution = hexContributions.some(contrib => contrib.q === q && contrib.r === r);
+          
+          // Set hex border color based on contribution status
+          if (hasContribution) {
+            ctx.strokeStyle = '#61dafb'; // Blue for contributed hexes
+            ctx.lineWidth = 3;
+          } else {
+            ctx.strokeStyle = '#00ff00'; // Green for empty hexes
+            ctx.lineWidth = 2;
+          }
+          
+          drawHexagon(ctx, displayCenter.x, displayCenter.y, displayHexSize);
+          
+          // Draw small dot at center - different colors for different states
+          if (hasContribution) {
+            ctx.fillStyle = '#61dafb'; // Blue dot for contributed
+          } else {
+            ctx.fillStyle = '#ff0000'; // Red dot for empty (debugging)
+          }
+          ctx.beginPath();
+          ctx.arc(displayCenter.x, displayCenter.y, 3, 0, 2 * Math.PI);
+          ctx.fill();
+          
+          // Draw coordinate label for debugging (only for a few hexes)
+          if (q >= 6 && q <= 8 && r >= 1 && r <= 3) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px Arial';
+            ctx.fillText(`${q},${r}`, displayCenter.x - 10, displayCenter.y + 3);
+          }
+        }
+      }
+    }
+    
+    console.log('Hex grid drawing completed');
   };
 
   // Use effect to load image into canvas after selectedImage changes
@@ -130,60 +218,7 @@ function App() {
       console.log('Setting image src:', imageSrc);
       img.src = imageSrc;
     }, 100); // Small delay to ensure canvas is rendered
-  }, [selectedImage]);
-
-  const drawHexGrid = (ctx: CanvasRenderingContext2D, width: number, height: number, scale: number) => {
-    const backendHexSize = 50; // Use same hex size as backend
-    const displayHexSize = backendHexSize * scale; // Scale for display
-    
-    // Calculate original image dimensions
-    const originalWidth = width / scale;
-    const originalHeight = height / scale;
-    
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 2;
-
-    console.log('Drawing hex grid with backend hexSize:', backendHexSize, 'display hexSize:', displayHexSize);
-
-    // Draw hex grid using same logic as backend - start from 0,0 and go in positive directions
-    // Calculate reasonable grid bounds
-    const maxQ = Math.ceil(originalWidth / (backendHexSize * 1.5)) + 2;
-    const maxR = Math.ceil(originalHeight / (backendHexSize * Math.sqrt(3))) + 2;
-    
-    for (let q = -2; q <= maxQ; q++) {
-      for (let r = -2; r <= maxR; r++) {
-        // Calculate center in original image coordinates using backend formula
-        const originalCenter = hexToPixel(q, r, backendHexSize);
-        
-        // Scale to display coordinates
-        const displayCenter = {
-          x: originalCenter.x * scale,
-          y: originalCenter.y * scale
-        };
-        
-        // Check if hex is within canvas bounds (with some margin)
-        if (displayCenter.x >= -displayHexSize && displayCenter.x <= width + displayHexSize &&
-            displayCenter.y >= -displayHexSize && displayCenter.y <= height + displayHexSize) {
-          drawHexagon(ctx, displayCenter.x, displayCenter.y, displayHexSize);
-          
-          // Draw small red dot at center for debugging
-          ctx.fillStyle = '#ff0000';
-          ctx.beginPath();
-          ctx.arc(displayCenter.x, displayCenter.y, 3, 0, 2 * Math.PI);
-          ctx.fill();
-          
-          // Draw coordinate label for debugging (only for a few hexes)
-          if (q >= 6 && q <= 8 && r >= 1 && r <= 3) {
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '10px Arial';
-            ctx.fillText(`${q},${r}`, displayCenter.x - 10, displayCenter.y + 3);
-          }
-        }
-      }
-    }
-    
-    console.log('Hex grid drawing completed');
-  };
+  }, [selectedImage, hexContributions]);
 
   const hexToPixel = (q: number, r: number, hexSize: number) => {
     // Use exact same formula as backend
@@ -281,6 +316,41 @@ function App() {
     
     setSelectedHexCoords(hexCoords);
 
+    // Check if there's an existing contribution for this hex
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/hex-content/${selectedImage.id}/${hexCoords.q}/${hexCoords.r}`
+      );
+      
+      if (response.ok) {
+        const contribution = await response.json();
+        setExistingContribution(contribution);
+      } else {
+        setExistingContribution(null);
+      }
+    } catch (error) {
+      console.log('No existing contribution found for this hex');
+      setExistingContribution(null);
+    }
+
+    // Fetch hex context (parent/sibling info)
+    try {
+      const contextResponse = await fetch(
+        `${API_BASE}/api/hex-context/${selectedImage.id}/${hexCoords.q}/${hexCoords.r}`
+      );
+      
+      if (contextResponse.ok) {
+        const context = await contextResponse.json();
+        setHexContext(context);
+      } else {
+        setHexContext(null);
+      }
+    } catch (error) {
+      console.log('Error fetching hex context:', error);
+      setHexContext(null);
+    }
+
+    // Extract hex region for preview
     try {
       const response = await fetch(
         `${API_BASE}/api/images/${selectedImage.id}/hex/${hexCoords.q}/${hexCoords.r}`
@@ -296,7 +366,57 @@ function App() {
     } catch (error) {
       console.error('Failed to extract hex:', error);
     }
+
+    // Show contribution modal
+    setShowContributionModal(true);
   };
+
+  const handleContributionSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedImage || !selectedHexCoords) return;
+
+    const formData = new FormData(event.currentTarget);
+    formData.append('imageId', selectedImage.id);
+    formData.append('q', selectedHexCoords.q.toString());
+    formData.append('r', selectedHexCoords.r.toString());
+
+    try {
+      const response = await fetch(`${API_BASE}/api/hex-contributions`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        console.log('Contribution submitted successfully');
+        setShowContributionModal(false);
+        // Refresh contributions for this image
+        fetchHexContributions(selectedImage.id);
+      } else {
+        console.error('Failed to submit contribution');
+      }
+    } catch (error) {
+      console.error('Error submitting contribution:', error);
+    }
+  };
+
+  const fetchHexContributions = async (imageId: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/hex-contributions/${imageId}`);
+      if (response.ok) {
+        const contributions = await response.json();
+        setHexContributions(contributions);
+      }
+    } catch (error) {
+      console.error('Error fetching hex contributions:', error);
+    }
+  };
+
+  // Load contributions when image is selected
+  useEffect(() => {
+    if (selectedImage) {
+      fetchHexContributions(selectedImage.id);
+    }
+  }, [selectedImage]);
 
   return (
     <div className="App">
@@ -377,7 +497,7 @@ function App() {
           {selectedImage && (
             <div className="hex-viewer">
               <h2>Hex Grid Viewer</h2>
-              <p>Click on a hex cell to extract that region</p>
+              <p>Click on a hex cell to contribute content. Blue hexes already have contributions.</p>
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
@@ -387,6 +507,144 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Hex Contribution Modal */}
+      {showContributionModal && selectedHexCoords && (
+        <div className="modal-overlay" onClick={() => setShowContributionModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>
+                Contribute to Hex {selectedHexCoords.q}, {selectedHexCoords.r}
+              </h2>
+              <button 
+                className="close-button"
+                onClick={() => setShowContributionModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Context Information */}
+              {hexContext && (
+                <div className="hex-context">
+                  <h3>Context Information</h3>
+                  <div className="context-info">
+                    <p><strong>Current Hex:</strong> Q={hexContext.current.q}, R={hexContext.current.r} (Level {hexContext.current.level})</p>
+                    {hexContext.parent && hexContext.parent.type === 'world' ? (
+                      <div>
+                        <p><strong>World Context:</strong></p>
+                        <div className="world-context">{hexContext.parent.description}</div>
+                      </div>
+                    ) : hexContext.parent ? (
+                      <p><strong>Parent:</strong> Q={hexContext.parent.q}, R={hexContext.parent.r} - "{hexContext.parent.description}"</p>
+                    ) : (
+                      <p><strong>Parent:</strong> None (Top level hex)</p>
+                    )}
+                  </div>
+                  
+                  {/* Context Images */}
+                  <div className="context-images">
+                    <div className="context-image">
+                      <h4>Current Hex</h4>
+                      {hexExtraction && <img src={hexExtraction} alt="Current hex region" />}
+                    </div>
+                    <div className="context-image">
+                      <h4>Hex with Grid</h4>
+                      {selectedImage && (
+                        <img 
+                          src={`${API_BASE}/api/hex-grid-view/${selectedImage.id}/${selectedHexCoords.q}/${selectedHexCoords.r}`} 
+                          alt="Hex with surrounding grid" 
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Copyable Context */}
+                  <div className="copyable-context">
+                    <h4>Copy Context for AI:</h4>
+                    <textarea 
+                      readOnly 
+                      value={hexContext.textSummary}
+                      rows={8}
+                      onClick={(e) => e.currentTarget.select()}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Hex Preview */}
+              {hexExtraction && !hexContext && (
+                <div className="hex-preview">
+                  <h3>Current Hex Region</h3>
+                  <img src={hexExtraction} alt="Hex region preview" />
+                </div>
+              )}
+
+              {/* Existing Contribution */}
+              {existingContribution && (
+                <div className="existing-contribution">
+                  <h3>Existing Contribution</h3>
+                  <p><strong>Description:</strong> {existingContribution.description}</p>
+                  <p><strong>Contributor:</strong> {existingContribution.contributorName}</p>
+                  <p><strong>Status:</strong> {existingContribution.status}</p>
+                  {existingContribution.contributedImageFilename && (
+                    <img 
+                      src={`${API_BASE}/api/contributions/${existingContribution.contributedImageFilename}`}
+                      alt="Contributed content"
+                      style={{ maxWidth: '200px' }}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Contribution Form */}
+              <form onSubmit={handleContributionSubmit} className="contribution-form">
+                <div className="form-group">
+                  <label htmlFor="contributorName">Your Name:</label>
+                  <input
+                    type="text"
+                    id="contributorName"
+                    name="contributorName"
+                    placeholder="Enter your name (optional)"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="description">Description:</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    rows={4}
+                    placeholder="Describe what's in this hex region..."
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="contributedImage">Upload Zoomed Image (optional):</label>
+                  <input
+                    type="file"
+                    id="contributedImage"
+                    name="contributedImage"
+                    accept="image/*"
+                  />
+                  <small>Upload a more detailed image of this hex region</small>
+                </div>
+
+                <div className="form-actions">
+                  <button type="button" onClick={() => setShowContributionModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit">
+                    Submit Contribution
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

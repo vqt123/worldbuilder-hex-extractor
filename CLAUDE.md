@@ -44,6 +44,8 @@ ALWAYS create a comprehensive todo list that includes ALL mandatory requirements
 - Simple scripts as workarounds to avoid running live servers
 - Workarounds or sample files when tools are unavailable
 - One-off demonstration files instead of addressing core issues
+- Installing new testing tools when existing ones are available (use playwright, not puppeteer)
+- Marking tasks as "tested" without actually running tests and taking screenshots
 
 ### MANDATORY REQUIREMENTS
 - **HIDDEN FILES/DIRECTORIES**: Check with `ls -la` or `find . -name ".*"`

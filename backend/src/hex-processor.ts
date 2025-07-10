@@ -147,4 +147,115 @@ export class HexProcessor {
     const rows = Math.ceil(imageHeight / this.hexHeight);
     return { cols, rows };
   }
+
+  // Generate an image showing the hex within a surrounding grid context
+  async generateHexGridView(imagePath: string, centerQ: number, centerR: number, imageWidth: number, imageHeight: number): Promise<Buffer> {
+    const gridSize = 3; // 3x3 grid around the center hex
+    const halfGrid = Math.floor(gridSize / 2);
+    
+    // Calculate the bounds for the grid view
+    const centerPixel = this.hexToPixel(centerQ, centerR);
+    const gridExtent = this.hexSize * 2.5; // Extend beyond just the hex
+    
+    const minX = Math.max(0, centerPixel.x - gridExtent);
+    const maxX = Math.min(imageWidth, centerPixel.x + gridExtent);
+    const minY = Math.max(0, centerPixel.y - gridExtent);
+    const maxY = Math.min(imageHeight, centerPixel.y + gridExtent);
+    
+    const width = maxX - minX;
+    const height = maxY - minY;
+    
+    if (width <= 0 || height <= 0) {
+      // Return empty image if invalid bounds
+      return await sharp({
+        create: {
+          width: 300,
+          height: 300,
+          channels: 4,
+          background: { r: 100, g: 100, b: 100, alpha: 1 }
+        }
+      }).png().toBuffer();
+    }
+
+    // Extract the base image region
+    const baseImage = await sharp(imagePath)
+      .extract({
+        left: Math.floor(minX),
+        top: Math.floor(minY),
+        width: Math.floor(width),
+        height: Math.floor(height)
+      })
+      .png()
+      .toBuffer();
+
+    // Create grid overlay with highlighted center hex
+    const gridOverlaySvg = this.createGridOverlay(width, height, centerQ, centerR, minX, minY, gridSize);
+    
+    // Composite the grid overlay onto the base image
+    const finalImage = await sharp(baseImage)
+      .composite([{
+        input: Buffer.from(gridOverlaySvg),
+        blend: 'over'
+      }])
+      .png()
+      .toBuffer();
+
+    return finalImage;
+  }
+
+  private createGridOverlay(width: number, height: number, centerQ: number, centerR: number, offsetX: number, offsetY: number, gridSize: number): string {
+    const halfGrid = Math.floor(gridSize / 2);
+    let pathElements = '';
+    
+    // Draw grid hexagons
+    for (let qOffset = -halfGrid; qOffset <= halfGrid; qOffset++) {
+      for (let rOffset = -halfGrid; rOffset <= halfGrid; rOffset++) {
+        const q = centerQ + qOffset;
+        const r = centerR + rOffset;
+        const center = this.hexToPixel(q, r);
+        
+        // Adjust coordinates relative to the extracted region
+        const adjustedX = center.x - offsetX;
+        const adjustedY = center.y - offsetY;
+        
+        // Check if this hex is within the extracted region
+        if (adjustedX >= -this.hexSize && adjustedX <= width + this.hexSize &&
+            adjustedY >= -this.hexSize && adjustedY <= height + this.hexSize) {
+          
+          const vertices = [];
+          for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i;
+            const x = adjustedX + this.hexSize * Math.cos(angle);
+            const y = adjustedY + this.hexSize * Math.sin(angle);
+            vertices.push(`${x},${y}`);
+          }
+          
+          const isCenter = (qOffset === 0 && rOffset === 0);
+          const strokeColor = isCenter ? '#ff0000' : '#00ff00';
+          const strokeWidth = isCenter ? '4' : '2';
+          const fillOpacity = isCenter ? '0.2' : '0';
+          
+          pathElements += `
+            <polygon points="${vertices.join(' ')}" 
+                     fill="red" 
+                     fill-opacity="${fillOpacity}"
+                     stroke="${strokeColor}" 
+                     stroke-width="${strokeWidth}"/>`;
+          
+          if (isCenter) {
+            // Add center dot for highlighted hex
+            pathElements += `
+              <circle cx="${adjustedX}" cy="${adjustedY}" r="5" 
+                      fill="#ff0000" stroke="#ffffff" stroke-width="2"/>`;
+          }
+        }
+      }
+    }
+
+    return `
+      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        ${pathElements}
+      </svg>
+    `;
+  }
 }

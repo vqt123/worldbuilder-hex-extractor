@@ -74,15 +74,63 @@ async function testFrontend() {
         await page.screenshot({ path: 'debug-3-canvas-loaded.png', fullPage: false });
         console.log('Screenshot 3: Canvas loaded taken');
         
-        console.log('Clicking on hex grid canvas...');
-        await canvas.click({ position: { x: 200, y: 200 } });
+        console.log('Testing coordinate alignment with debugging...');
+        
+        // Test hex contribution system
+        console.log('Testing hex contribution system...');
+        console.log('Clicking on hex center to open contribution modal...');
+        await canvas.click({ position: { x: 300, y: 300 } });
         await page.waitForTimeout(3000);
         
-        // Take screenshot with extracted hex and coordinates
-        await page.screenshot({ path: 'debug-4-after-canvas-click.png', fullPage: false });
-        console.log('Screenshot 4: After canvas click taken');
+        // Take screenshot with contribution modal open
+        await page.screenshot({ path: 'screenshots/contribution-modal-open.png', fullPage: false });
+        console.log('Screenshot: Contribution modal open taken');
         
-        // Check if extraction result appeared
+        // Check if contribution modal appeared
+        const modalVisible = await page.locator('.modal-overlay').isVisible();
+        if (modalVisible) {
+            console.log('✅ Contribution modal opened successfully');
+            
+            // Fill out the contribution form
+            console.log('Filling out contribution form...');
+            await page.fill('input[name="contributorName"]', 'Test User');
+            await page.fill('textarea[name="description"]', 'This is a test contribution for the hex contribution system. This area contains a mystical forest.');
+            
+            // Take screenshot with form filled
+            await page.screenshot({ path: 'screenshots/contribution-form-filled.png', fullPage: false });
+            console.log('Screenshot: Contribution form filled taken');
+            
+            // Submit the contribution
+            console.log('Submitting contribution...');
+            await page.click('button[type="submit"]');
+            await page.waitForTimeout(3000);
+            
+            // Take screenshot after submission
+            await page.screenshot({ path: 'screenshots/after-contribution-submitted.png', fullPage: false });
+            console.log('Screenshot: After contribution submitted taken');
+            
+            // Click on the same hex again to test existing contribution display
+            console.log('Testing existing contribution display...');
+            await canvas.click({ position: { x: 300, y: 300 } });
+            await page.waitForTimeout(2000);
+            
+            // Take screenshot showing existing contribution
+            await page.screenshot({ path: 'screenshots/existing-contribution-display.png', fullPage: false });
+            console.log('Screenshot: Existing contribution display taken');
+            
+            // Close modal
+            await page.click('.close-button');
+            await page.waitForTimeout(1000);
+            
+            // Take final screenshot showing visual indicators
+            await page.screenshot({ path: 'screenshots/visual-indicators.png', fullPage: false });
+            console.log('Screenshot: Visual indicators taken');
+            
+        } else {
+            console.log('❌ Contribution modal did not open');
+        }
+        
+        // Check if extraction result appeared (legacy test)
         const extractionSection = await page.locator('div:has-text("Extracted Hex Region")').isVisible();
         console.log('Extraction section visible:', extractionSection);
       }
