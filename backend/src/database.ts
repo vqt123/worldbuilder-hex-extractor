@@ -290,20 +290,22 @@ export class Database {
   }
 
   private formatContextSummary(q: number, r: number, level: number, parent: any, siblings: any[]): string {
-    let summary = `Current Hex: Q=${q}, R=${r} (Level ${level})\n\n`;
+    let summary = `Please write a detailed description for this hex grid cell based on the following context. Create a vivid, immersive description that:\n- Fits naturally within the established world\n- References or connects to neighboring areas when appropriate\n- Maintains consistency with the overall setting\n- Provides rich detail for worldbuilding purposes\n\n`;
+    
+    summary += `CURRENT LOCATION: Hex Q=${q}, R=${r} (Level ${level})\n\n`;
     
     if (parent && parent.type === 'world') {
-      summary += `World Context: ${parent.description}\n\n`;
+      summary += `WORLD CONTEXT:\n${parent.description}\n\n`;
     } else if (parent) {
-      summary += `Parent: Q=${parent.q}, R=${parent.r} - "${parent.description}"\n\n`;
+      summary += `PARENT HEX: Q=${parent.q}, R=${parent.r} - "${parent.description}"\n\n`;
     } else {
-      summary += `Parent: None (Top level hex)\n\n`;
+      summary += `PARENT: None (Top level hex)\n\n`;
     }
     
-    summary += `Siblings:\n`;
+    summary += `SURROUNDING AREAS:\n`;
     for (const sibling of siblings) {
       const desc = sibling.description || "No description yet";
-      summary += `- Q=${sibling.q}, R=${sibling.r}: "${desc}"\n`;
+      summary += `- Hex Q=${sibling.q}, R=${sibling.r}: "${desc}"\n`;
     }
     
     return summary;

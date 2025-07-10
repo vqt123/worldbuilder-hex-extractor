@@ -433,8 +433,8 @@
 
 .context-images {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
@@ -456,10 +456,40 @@
   object-fit: contain;
 }
 
-.copyable-context h4 {
-  margin: 0 0 8px 0;
+.copyable-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.copyable-header h4 {
+  margin: 0;
   font-size: 14px;
   color: #ccc;
+}
+
+.copy-button {
+  padding: 6px 12px;
+  border: 1px solid #61dafb;
+  border-radius: 4px;
+  background-color: transparent;
+  color: #61dafb;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 60px;
+}
+
+.copy-button:hover:not(:disabled) {
+  background-color: #61dafb;
+  color: #282c34;
+}
+
+.copy-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .copyable-context textarea {

@@ -41,6 +41,7 @@ function App() {
   const [existingContribution, setExistingContribution] = useState<HexContribution | null>(null);
   const [hexContributions, setHexContributions] = useState<HexContribution[]>([]);
   const [hexContext, setHexContext] = useState<any>(null);
+  const [copySuccess, setCopySuccess] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -411,6 +412,19 @@ function App() {
     }
   };
 
+  const handleCopyToClipboard = async () => {
+    if (!hexContext?.textSummary) return;
+    
+    try {
+      await navigator.clipboard.writeText(hexContext.textSummary);
+      setCopySuccess('Copied!');
+      setTimeout(() => setCopySuccess(''), 2000);
+    } catch (err) {
+      setCopySuccess('Failed to copy');
+      setTimeout(() => setCopySuccess(''), 2000);
+    }
+  };
+
   // Load contributions when image is selected
   useEffect(() => {
     if (selectedImage) {
@@ -558,11 +572,29 @@ function App() {
                         />
                       )}
                     </div>
+                    <div className="context-image">
+                      <h4>World Map</h4>
+                      {selectedImage && (
+                        <img 
+                          src={`${API_BASE}/uploads/${selectedImage.filename}`} 
+                          alt="Parent world map" 
+                        />
+                      )}
+                    </div>
                   </div>
                   
                   {/* Copyable Context */}
                   <div className="copyable-context">
-                    <h4>Copy Context for AI:</h4>
+                    <div className="copyable-header">
+                      <h4>AI Context Prompt:</h4>
+                      <button 
+                        className="copy-button"
+                        onClick={handleCopyToClipboard}
+                        disabled={!hexContext?.textSummary}
+                      >
+                        {copySuccess || 'Copy'}
+                      </button>
+                    </div>
                     <textarea 
                       readOnly 
                       value={hexContext.textSummary}
