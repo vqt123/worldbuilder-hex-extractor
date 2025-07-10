@@ -76,7 +76,9 @@ function App() {
     if (!ctx) return;
 
     const img = new Image();
+    img.crossOrigin = 'anonymous'; // Enable CORS for canvas
     img.onload = () => {
+      console.log('Image loaded for canvas:', img.width, 'x', img.height);
       // Scale image to fit canvas while maintaining aspect ratio
       const scale = Math.min(800 / img.width, 600 / img.height);
       const scaledWidth = img.width * scale;
@@ -90,6 +92,10 @@ function App() {
       
       // Draw hex grid overlay
       drawHexGrid(ctx, scaledWidth, scaledHeight, scale);
+    };
+    img.onerror = (error) => {
+      console.error('Failed to load image for canvas:', error);
+      console.error('Image src:', `${API_BASE}/uploads/${image.filename}`);
     };
     img.src = `${API_BASE}/uploads/${image.filename}`;
   };
@@ -177,7 +183,6 @@ function App() {
     const hexCoords = pixelToHex(x, y, hexSize);
 
     // Convert back to original image coordinates
-    const originalHexSize = 50;
     const originalHexCoords = {
       q: Math.round(hexCoords.q / scale),
       r: Math.round(hexCoords.r / scale)
@@ -200,80 +205,90 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Worldbuilder Admin</h1>
-        
-        {/* Upload Form */}
-        <form onSubmit={handleImageUpload} className="upload-form">
-          <div>
-            <label htmlFor="image">Select Image:</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              id="image"
-              name="image"
-              accept="image/*"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="description">Description:</label>
-            <textarea
-              id="description"
-              name="description"
-              rows={3}
-              placeholder="Describe this world region..."
-            />
-          </div>
-          <button type="submit" disabled={uploading}>
-            {uploading ? 'Uploading...' : 'Upload Image'}
-          </button>
-        </form>
-
-        {/* Image List */}
-        <div className="image-list">
-          <h2>Uploaded Images</h2>
-          {images.map((image) => (
-            <div key={image.id} className="image-item">
-              <img
-                src={`${API_BASE}/uploads/${image.filename}`}
-                alt={image.description}
-                width="200"
-                height="150"
-                style={{ objectFit: 'cover' }}
+      <h1>Worldbuilder Admin</h1>
+      
+      <div className="main-container">
+        {/* Left Panel */}
+        <div className="left-panel">
+          {/* Upload Form */}
+          <form onSubmit={handleImageUpload} className="upload-form">
+            <div>
+              <label htmlFor="image">Select Image:</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                id="image"
+                name="image"
+                accept="image/*"
+                required
               />
-              <div className="image-info">
-                <p><strong>Description:</strong> {image.description}</p>
-                <p><strong>Dimensions:</strong> {image.width}x{image.height}</p>
-                <button onClick={() => loadImageWithHexOverlay(image)}>
-                  View with Hex Grid
-                </button>
-              </div>
             </div>
-          ))}
+            <div>
+              <label htmlFor="description">Description:</label>
+              <textarea
+                id="description"
+                name="description"
+                rows={3}
+                placeholder="Describe this world region..."
+              />
+            </div>
+            <button type="submit" disabled={uploading}>
+              {uploading ? 'Uploading...' : 'Upload Image'}
+            </button>
+          </form>
+
+          {/* Image List */}
+          <div className="image-list">
+            <h2>Uploaded Images</h2>
+            {images.map((image) => (
+              <div key={image.id} className="image-item">
+                <img
+                  src={`${API_BASE}/uploads/${image.filename}`}
+                  alt={image.description}
+                  onError={(e) => {
+                    console.error('Image failed to load:', `${API_BASE}/uploads/${image.filename}`);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={() => console.log('Image loaded successfully:', `${API_BASE}/uploads/${image.filename}`)}
+                />
+                <div className="image-info">
+                  <p><strong>Dimensions:</strong> {image.width}x{image.height}</p>
+                  <div className="image-description">
+                    <strong>Description:</strong> {image.description}
+                  </div>
+                  <button onClick={() => loadImageWithHexOverlay(image)}>
+                    View with Hex Grid
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Hex Extraction Result */}
+          {hexExtraction && (
+            <div className="hex-extraction">
+              <h3>Extracted Hex Region</h3>
+              <img src={hexExtraction} alt="Extracted hex region" />
+            </div>
+          )}
         </div>
 
-        {/* Hex Grid Viewer */}
-        {selectedImage && (
-          <div className="hex-viewer">
-            <h2>Hex Grid Viewer</h2>
-            <p>Click on a hex cell to extract that region</p>
-            <canvas
-              ref={canvasRef}
-              onClick={handleCanvasClick}
-              style={{ border: '1px solid #ccc', cursor: 'pointer' }}
-            />
-          </div>
-        )}
-
-        {/* Hex Extraction Result */}
-        {hexExtraction && (
-          <div className="hex-extraction">
-            <h3>Extracted Hex Region</h3>
-            <img src={hexExtraction} alt="Extracted hex region" />
-          </div>
-        )}
-      </header>
+        {/* Right Panel */}
+        <div className="right-panel">
+          {/* Hex Grid Viewer */}
+          {selectedImage && (
+            <div className="hex-viewer">
+              <h2>Hex Grid Viewer</h2>
+              <p>Click on a hex cell to extract that region</p>
+              <canvas
+                ref={canvasRef}
+                onClick={handleCanvasClick}
+                style={{ cursor: 'pointer' }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
