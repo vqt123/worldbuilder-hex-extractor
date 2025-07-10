@@ -1,0 +1,2 @@
+create an interactive website where people can contribute and build out an entire world.
+when the user first visits the site they are presented with a hex grid top level view of the entire world. the highest level view of the world is generated with information about what is located in each of the top level hexes. A user can click on a grid cel and they are zoomed in and presented with the next hiearchy of grids which they can click on and provide a description of what is there. This can go on indefinatly

@@ -46,3 +46,16 @@
 **Outcome**: Successful project completion with proper TypeScript conventions maintained and both servers running correctly.
 
 **Key Lesson**: Stop immediately when encountering version compatibility errors and research proper solutions rather than modifying established conventions.
+
+## Development Server Timeout Prevention (2025-07-10)
+**Improvement**: Prevent command timeouts when starting development servers with nohup.
+
+**Problem**: Commands like `nohup npm start` timeout after 2 minutes because development servers run continuously and never "complete".
+
+**Implementation**: 
+- Use nohup with background operator: `nohup npm start > log.txt 2>&1 & echo $! > pid.txt`
+- DO NOT add timeout parameter to bash commands for development servers
+- Verify server startup with curl/HTTP requests, not command completion
+- Check server logs and process lists to confirm successful startup
+
+**Outcome**: Prevents unnecessary command timeouts and ensures proper server startup tracking.

@@ -1,0 +1,124 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  padding: 20px;
+  color: white;
+}
+
+.upload-form {
+  background-color: #3c4043;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.upload-form div {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.upload-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.upload-form input,
+.upload-form textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.upload-form button {
+  background-color: #61dafb;
+  color: #282c34;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.upload-form button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.image-list {
+  margin: 40px 0;
+}
+
+.image-item {
+  display: flex;
+  align-items: center;
+  background-color: #3c4043;
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 8px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.image-item img {
+  margin-right: 20px;
+  border-radius: 4px;
+}
+
+.image-info {
+  flex: 1;
+  text-align: left;
+}
+
+.image-info p {
+  margin: 10px 0;
+  font-size: 14px;
+}
+
+.image-info button {
+  background-color: #61dafb;
+  color: #282c34;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.hex-viewer {
+  margin: 40px 0;
+}
+
+.hex-viewer canvas {
+  display: block;
+  margin: 20px auto;
+  border: 2px solid #61dafb;
+  border-radius: 8px;
+}
+
+.hex-extraction {
+  margin: 40px 0;
+  padding: 20px;
+  background-color: #3c4043;
+  border-radius: 8px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hex-extraction img {
+  max-width: 100%;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}

@@ -1,2 +1,0 @@
-create the first step of a simple realtime multiplayer game where players can move around on a 2d grid   
-- game should persist through server restarts, users should be able to close and open the game and continue where they left off
