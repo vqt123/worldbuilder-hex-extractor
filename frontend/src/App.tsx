@@ -67,39 +67,70 @@ function App() {
   };
 
   const loadImageWithHexOverlay = (image: ImageData) => {
+    console.log('Setting selected image:', image);
     setSelectedImage(image);
     setHexExtraction(null);
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous'; // Enable CORS for canvas
-    img.onload = () => {
-      console.log('Image loaded for canvas:', img.width, 'x', img.height);
-      // Scale image to fit canvas while maintaining aspect ratio
-      const scale = Math.min(800 / img.width, 600 / img.height);
-      const scaledWidth = img.width * scale;
-      const scaledHeight = img.height * scale;
-      
-      canvas.width = scaledWidth;
-      canvas.height = scaledHeight;
-      
-      // Draw image
-      ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
-      
-      // Draw hex grid overlay
-      drawHexGrid(ctx, scaledWidth, scaledHeight, scale);
-    };
-    img.onerror = (error) => {
-      console.error('Failed to load image for canvas:', error);
-      console.error('Image src:', `${API_BASE}/uploads/${image.filename}`);
-    };
-    img.src = `${API_BASE}/uploads/${image.filename}`;
+    setSelectedHexCoords(null);
   };
+
+  // Use effect to load image into canvas after selectedImage changes
+  useEffect(() => {
+    if (!selectedImage) return;
+    
+    // Wait for next tick to ensure canvas is rendered
+    setTimeout(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        console.error('Canvas ref is null');
+        return;
+      }
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('Cannot get 2D context');
+        return;
+      }
+
+      console.log('Canvas and context ready, loading image...');
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // Enable CORS for canvas
+      
+      img.onload = () => {
+        console.log('✅ Image loaded for canvas:', img.width, 'x', img.height);
+        
+        // Scale image to fit canvas while maintaining aspect ratio
+        const scale = Math.min(800 / img.width, 600 / img.height);
+        const scaledWidth = img.width * scale;
+        const scaledHeight = img.height * scale;
+        
+        console.log('Canvas scaling:', { scale, scaledWidth, scaledHeight });
+        
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+        
+        // Clear canvas first
+        ctx.clearRect(0, 0, scaledWidth, scaledHeight);
+        
+        // Draw image
+        ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+        console.log('✅ Image drawn to canvas');
+        
+        // Draw hex grid overlay
+        drawHexGrid(ctx, scaledWidth, scaledHeight, scale);
+        console.log('✅ Hex grid drawn');
+      };
+      
+      img.onerror = (error) => {
+        console.error('❌ Failed to load image for canvas:', error);
+        console.error('Image src:', `${API_BASE}/uploads/${selectedImage.filename}`);
+      };
+      
+      const imageSrc = `${API_BASE}/uploads/${selectedImage.filename}`;
+      console.log('Setting image src:', imageSrc);
+      img.src = imageSrc;
+    }, 100); // Small delay to ensure canvas is rendered
+  }, [selectedImage]);
 
   const drawHexGrid = (ctx: CanvasRenderingContext2D, width: number, height: number, scale: number) => {
     const hexSize = 50 * scale;
