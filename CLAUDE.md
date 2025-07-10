@@ -46,14 +46,16 @@ ALWAYS create a comprehensive todo list that includes ALL mandatory requirements
 - One-off demonstration files instead of addressing core issues
 - Installing new testing tools when existing ones are available (use playwright, not puppeteer)
 - Marking tasks as "tested" without actually running tests and taking screenshots
+- Creating screenshots outside the `/screenshots/` folder
 
 ### MANDATORY REQUIREMENTS
 - **HIDDEN FILES/DIRECTORIES**: Check with `ls -la` or `find . -name ".*"`
+- **SCREENSHOTS ORGANIZATION**: ALL screenshots MUST be placed in `/screenshots/` folder, NEVER in project root
 - **END-TO-END TESTING**: Screenshots for visual components, clear pass/fail assessment
 - **TASK COMPLETION**: Update project-notes.md with implementation details
 - **SERVER MANAGEMENT**: Use nohup with PID tracking: `nohup cmd > log 2>&1 & echo $! > pid`
 
 ## Referenced Documents
-- **Operational Learnings**: See `operational-learnings.md` for detailed process improvements
-- **Claude Code Reference**: See `claude-code-reference.md` for documentation mapping
+- **Operational Learnings**: See `docs/operational-learnings.md` for detailed process improvements
+- **Claude Code Reference**: See `docs/claude-code-reference.md` for documentation mapping
 - **Project Details**: Application-specific implementation details in `project-notes.md`

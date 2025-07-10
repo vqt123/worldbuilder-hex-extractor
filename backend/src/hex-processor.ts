@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import path from 'path';
 
 export interface HexCoordinates {
   q: number;
@@ -74,7 +75,8 @@ export class HexProcessor {
   }
 
   // Extract a hex-shaped region from an image
-  async extractHexRegion(imagePath: string, q: number, r: number, imageWidth: number, imageHeight: number): Promise<Buffer> {
+  async extractHexRegion(filename: string, q: number, r: number, imageWidth: number, imageHeight: number): Promise<Buffer> {
+    const imagePath = path.join(__dirname, '../uploads', filename);
     const vertices = this.getHexVertices(q, r);
     
     // Find bounding box of the hex
@@ -149,7 +151,8 @@ export class HexProcessor {
   }
 
   // Generate an image showing the hex within a surrounding grid context
-  async generateHexGridView(imagePath: string, centerQ: number, centerR: number, imageWidth: number, imageHeight: number): Promise<Buffer> {
+  async generateHexGridView(filename: string, centerQ: number, centerR: number, imageWidth: number, imageHeight: number): Promise<Buffer> {
+    const imagePath = path.join(__dirname, '../uploads', filename);
     const gridSize = 3; // 3x3 grid around the center hex
     const halfGrid = Math.floor(gridSize / 2);
     

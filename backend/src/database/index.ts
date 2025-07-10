@@ -1,9 +1,8 @@
-// Temporary compatibility layer during refactoring
-import { ImageRepository } from './database/ImageRepository';
-import { UserRepository } from './database/UserRepository';
-import { HexRepository } from './database/HexRepository';
+import { ImageRepository } from './ImageRepository';
+import { UserRepository } from './UserRepository';
+import { HexRepository } from './HexRepository';
 
-export class Database {
+export class DatabaseService {
   private imageRepo: ImageRepository;
   private userRepo: UserRepository;
   private hexRepo: HexRepository;
@@ -73,3 +72,7 @@ export class Database {
     return this.hexRepo.getSiblingHexes(imageId, centerQ, centerR);
   }
 }
+
+// Export types
+export * from '../types';
+export { Database } from './Database';
