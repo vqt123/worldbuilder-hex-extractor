@@ -256,11 +256,15 @@ export class Database {
     // Create formatted text summary
     const textSummary = this.formatContextSummary(q, r, level, parent, siblings);
     
+    // Format image generation prompt (if current hex has description)
+    const imagePrompt = currentHex ? this.formatImagePrompt(q, r, level, parent, siblings, currentHex.description) : null;
+    
     return {
       current: { q, r, level },
       parent,
       siblings,
-      textSummary
+      textSummary,
+      imagePrompt
     };
   }
 
@@ -309,5 +313,39 @@ export class Database {
     }
     
     return summary;
+  }
+
+  private formatImagePrompt(q: number, r: number, level: number, parent: any, siblings: any[], userDescription: string): string {
+    let prompt = `Generate a detailed map image for this hex region that seamlessly integrates with the parent map.\n\n`;
+    
+    prompt += `HEX DESCRIPTION:\n${userDescription}\n\n`;
+    
+    prompt += `PARENT MAP STYLE:\n`;
+    prompt += `- Art style: Fantasy map with aged parchment aesthetic\n`;
+    prompt += `- Color palette: Earth tones with magical elements (match parent map)\n`;
+    prompt += `- Level of detail: Zoomed-in view with 3-5x more detail than parent\n`;
+    prompt += `- Perspective: Top-down map view, same angle as parent\n\n`;
+    
+    prompt += `VISUAL REQUIREMENTS:\n`;
+    prompt += `- Dimensions: 1024x1024 pixels (same as parent hex size)\n`;
+    prompt += `- Seamless edges that blend with surrounding hexes\n`;
+    prompt += `- Consistent lighting and artistic style with parent map\n`;
+    prompt += `- Include geographic features mentioned in description\n`;
+    prompt += `- Maintain world aesthetic: Fantasy/Sci-fi/Mixed from world context\n`;
+    prompt += `- No text labels or hex grid overlay (keep clean for integration)\n\n`;
+    
+    if (siblings && siblings.length > 0) {
+      prompt += `SURROUNDING CONTEXT (for edge consistency):\n`;
+      for (const sibling of siblings) {
+        if (sibling.description && sibling.description !== "No description yet") {
+          prompt += `- Adjacent area: ${sibling.description.split('.')[0]}...\n`;
+        }
+      }
+      prompt += `\n`;
+    }
+    
+    prompt += `Create a map section that looks like a natural zoom-in of the parent hex region, maintaining visual continuity with the overall world map.`;
+    
+    return prompt;
   }
 }

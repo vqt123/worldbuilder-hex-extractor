@@ -42,6 +42,7 @@ function App() {
   const [hexContributions, setHexContributions] = useState<HexContribution[]>([]);
   const [hexContext, setHexContext] = useState<any>(null);
   const [copySuccess, setCopySuccess] = useState<string>('');
+  const [copyImageSuccess, setCopyImageSuccess] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -425,6 +426,19 @@ function App() {
     }
   };
 
+  const handleCopyImagePrompt = async () => {
+    if (!hexContext?.imagePrompt) return;
+    
+    try {
+      await navigator.clipboard.writeText(hexContext.imagePrompt);
+      setCopyImageSuccess('Copied!');
+      setTimeout(() => setCopyImageSuccess(''), 2000);
+    } catch (err) {
+      setCopyImageSuccess('Failed to copy');
+      setTimeout(() => setCopyImageSuccess(''), 2000);
+    }
+  };
+
   // Load contributions when image is selected
   useEffect(() => {
     if (selectedImage) {
@@ -602,6 +616,28 @@ function App() {
                       onClick={(e) => e.currentTarget.select()}
                     />
                   </div>
+
+                  {/* Image Generation Prompt - Only show if hex has description */}
+                  {hexContext?.imagePrompt && (
+                    <div className="copyable-context image-prompt">
+                      <div className="copyable-header">
+                        <h4>AI Image Generation Prompt:</h4>
+                        <button 
+                          className="copy-button image-copy"
+                          onClick={handleCopyImagePrompt}
+                          disabled={!hexContext?.imagePrompt}
+                        >
+                          {copyImageSuccess || 'Copy'}
+                        </button>
+                      </div>
+                      <textarea 
+                        readOnly 
+                        value={hexContext.imagePrompt}
+                        rows={8}
+                        onClick={(e) => e.currentTarget.select()}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

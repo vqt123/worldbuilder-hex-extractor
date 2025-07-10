@@ -511,3 +511,24 @@
   border-color: #61dafb;
   box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
 }
+
+/* Image Generation Prompt Styling */
+.copyable-context.image-prompt {
+  border-left: 4px solid #ff9500;
+  background-color: #4a4e52;
+  margin-top: 16px;
+}
+
+.copyable-context.image-prompt .copyable-header h4 {
+  color: #ff9500;
+}
+
+.copyable-context.image-prompt .copy-button.image-copy {
+  border-color: #ff9500;
+  color: #ff9500;
+}
+
+.copyable-context.image-prompt .copy-button.image-copy:hover:not(:disabled) {
+  background-color: #ff9500;
+  color: #282c34;
+}
