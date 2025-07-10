@@ -133,34 +133,67 @@ function App() {
   }, [selectedImage]);
 
   const drawHexGrid = (ctx: CanvasRenderingContext2D, width: number, height: number, scale: number) => {
-    const hexSize = 50 * scale;
-    const hexWidth = hexSize * 2;
-    const hexHeight = Math.sqrt(3) * hexSize;
-
+    const backendHexSize = 50; // Use same hex size as backend
+    const displayHexSize = backendHexSize * scale; // Scale for display
+    
+    // Calculate original image dimensions
+    const originalWidth = width / scale;
+    const originalHeight = height / scale;
+    
     ctx.strokeStyle = '#00ff00';
     ctx.lineWidth = 2;
 
-    // Draw hex grid
-    for (let q = -Math.ceil(width / (hexWidth * 0.75)); q <= Math.ceil(width / (hexWidth * 0.75)); q++) {
-      for (let r = -Math.ceil(height / hexHeight); r <= Math.ceil(height / hexHeight); r++) {
-        const center = hexToPixel(q, r, hexSize);
+    console.log('Drawing hex grid with backend hexSize:', backendHexSize, 'display hexSize:', displayHexSize);
+
+    // Draw hex grid using same logic as backend - start from 0,0 and go in positive directions
+    // Calculate reasonable grid bounds
+    const maxQ = Math.ceil(originalWidth / (backendHexSize * 1.5)) + 2;
+    const maxR = Math.ceil(originalHeight / (backendHexSize * Math.sqrt(3))) + 2;
+    
+    for (let q = -2; q <= maxQ; q++) {
+      for (let r = -2; r <= maxR; r++) {
+        // Calculate center in original image coordinates using backend formula
+        const originalCenter = hexToPixel(q, r, backendHexSize);
         
-        // Check if hex is within canvas bounds
-        if (center.x >= -hexSize && center.x <= width + hexSize &&
-            center.y >= -hexSize && center.y <= height + hexSize) {
-          drawHexagon(ctx, center.x, center.y, hexSize);
+        // Scale to display coordinates
+        const displayCenter = {
+          x: originalCenter.x * scale,
+          y: originalCenter.y * scale
+        };
+        
+        // Check if hex is within canvas bounds (with some margin)
+        if (displayCenter.x >= -displayHexSize && displayCenter.x <= width + displayHexSize &&
+            displayCenter.y >= -displayHexSize && displayCenter.y <= height + displayHexSize) {
+          drawHexagon(ctx, displayCenter.x, displayCenter.y, displayHexSize);
+          
+          // Draw small red dot at center for debugging
+          ctx.fillStyle = '#ff0000';
+          ctx.beginPath();
+          ctx.arc(displayCenter.x, displayCenter.y, 3, 0, 2 * Math.PI);
+          ctx.fill();
+          
+          // Draw coordinate label for debugging (only for a few hexes)
+          if (q >= 6 && q <= 8 && r >= 1 && r <= 3) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px Arial';
+            ctx.fillText(`${q},${r}`, displayCenter.x - 10, displayCenter.y + 3);
+          }
         }
       }
     }
+    
+    console.log('Hex grid drawing completed');
   };
 
   const hexToPixel = (q: number, r: number, hexSize: number) => {
+    // Use exact same formula as backend
     const x = hexSize * (3/2 * q);
     const y = hexSize * (Math.sqrt(3)/2 * q + Math.sqrt(3) * r);
     return { x, y };
   };
 
   const pixelToHex = (x: number, y: number, hexSize: number): HexCoordinates => {
+    // Use exact same formula as backend
     const q = (2/3 * x) / hexSize;
     const r = (-1/3 * x + Math.sqrt(3)/3 * y) / hexSize;
     return roundHex(q, r);
@@ -188,6 +221,7 @@ function App() {
   const drawHexagon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
+      // Match backend hex orientation - flat top hexagon
       const angle = (Math.PI / 3) * i;
       const hx = x + size * Math.cos(angle);
       const hy = y + size * Math.sin(angle);
@@ -206,32 +240,58 @@ function App() {
 
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    
+    // Get canvas coordinates relative to the actual canvas pixels (not CSS pixels)
+    const canvasX = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const canvasY = (event.clientY - rect.top) * (canvas.height / rect.height);
+    
+    console.log('Raw click event:', { clientX: event.clientX, clientY: event.clientY });
+    console.log('Canvas rect size:', { width: rect.width, height: rect.height });
+    console.log('Canvas actual size:', { width: canvas.width, height: canvas.height });
+    console.log('Canvas scaling factors:', { 
+      xScale: canvas.width / rect.width, 
+      yScale: canvas.height / rect.height 
+    });
+    console.log('Corrected canvas coords:', { canvasX, canvasY });
 
-    // Convert to hex coordinates
+    // Get the scale used to display the image
     const scale = Math.min(800 / selectedImage.width, 600 / selectedImage.height);
-    const hexSize = 50 * scale;
-    const hexCoords = pixelToHex(x, y, hexSize);
+    
+    // Convert canvas coordinates to original image coordinates
+    const originalImageX = canvasX / scale;
+    const originalImageY = canvasY / scale;
+    
+    console.log('Canvas click:', { canvasX, canvasY });
+    console.log('Scale:', scale);
+    console.log('Original image coords:', { originalImageX, originalImageY });
 
-    // Convert back to original image coordinates
-    const originalHexCoords = {
-      q: Math.round(hexCoords.q / scale),
-      r: Math.round(hexCoords.r / scale)
-    };
+    // Use backend's hex size (50) to calculate hex coordinates on original image
+    const backendHexSize = 50;
+    const hexCoords = pixelToHex(originalImageX, originalImageY, backendHexSize);
 
-    console.log('Clicked hex coordinates:', originalHexCoords);
-    setSelectedHexCoords(originalHexCoords);
+    // Debug: Calculate what pixel position this hex coordinate represents
+    const hexCenterPixels = hexToPixel(hexCoords.q, hexCoords.r, backendHexSize);
+    console.log('Calculated hex coordinates:', hexCoords);
+    console.log('Hex center should be at pixels:', hexCenterPixels);
+    console.log('Clicked pixels:', { originalImageX, originalImageY });
+    console.log('Difference from center:', { 
+      deltaX: originalImageX - hexCenterPixels.x, 
+      deltaY: originalImageY - hexCenterPixels.y 
+    });
+    
+    setSelectedHexCoords(hexCoords);
 
     try {
       const response = await fetch(
-        `${API_BASE}/api/images/${selectedImage.id}/hex/${originalHexCoords.q}/${originalHexCoords.r}`
+        `${API_BASE}/api/images/${selectedImage.id}/hex/${hexCoords.q}/${hexCoords.r}`
       );
       
       if (response.ok) {
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         setHexExtraction(url);
+      } else {
+        console.error('Backend response error:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Failed to extract hex:', error);

@@ -91,20 +91,28 @@ app.get('/api/images', async (req, res) => {
 app.get('/api/images/:id/hex/:q/:r', async (req, res) => {
   try {
     const { id, q, r } = req.params;
+    const qCoord = parseInt(q);
+    const rCoord = parseInt(r);
+    
+    console.log(`🎯 Backend received hex extraction request: Q=${qCoord}, R=${rCoord} for image ${id}`);
+    
     const image = await database.getImageById(id);
     
     if (!image) {
       return res.status(404).json({ error: 'Image not found' });
     }
 
+    console.log(`📏 Image dimensions: ${image.width}x${image.height}`);
+
     const hexImage = await hexProcessor.extractHexRegion(
       path.join(__dirname, '../uploads', image.filename),
-      parseInt(q),
-      parseInt(r),
+      qCoord,
+      rCoord,
       image.width,
       image.height
     );
 
+    console.log(`✅ Hex extraction completed for Q=${qCoord}, R=${rCoord}`);
     res.setHeader('Content-Type', 'image/png');
     res.send(hexImage);
   } catch (error) {
