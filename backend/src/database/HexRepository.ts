@@ -117,18 +117,14 @@ export class HexRepository extends Database {
   }
 
   async getHexContext(imageId: string, q: number, r: number): Promise<any> {
-    // For now, assume Level 1 hexes - in future this would calculate actual hierarchy
-    const level = 1;
+    // Calculate actual hierarchy level based on image chain
+    const level = await this.calculateHexLevel(imageId);
     
     // Get current hex
     const currentHex = await this.getHexContribution(imageId, q, r);
     
-    // Get parent (the world/image description that this hex belongs to)
-    const parentImage = await this.getImageForContext(imageId);
-    const parent = parentImage ? {
-      description: parentImage.description,
-      type: 'world'
-    } : null;
+    // Get parent context (either world or parent hex)
+    const parent = await this.getParentContext(imageId, level);
     
     // Get sibling hexes (surrounding hexes)
     const siblings = await this.getSiblingHexes(imageId, q, r);
@@ -146,6 +142,138 @@ export class HexRepository extends Database {
       textSummary,
       imagePrompt
     };
+  }
+
+  async getZoomableHexes(imageId: string): Promise<Array<{q: number, r: number, contributedImageFilename: string}>> {
+    const rows = await this.query<any>(
+      'SELECT q, r, contributed_image_filename FROM hex_regions WHERE image_id = ? AND contributed_image_filename IS NOT NULL',
+      [imageId]
+    );
+    
+    return rows.map(row => ({
+      q: row.q,
+      r: row.r,
+      contributedImageFilename: row.contributed_image_filename
+    }));
+  }
+
+  async getZoomImageData(imageId: string, q: number, r: number): Promise<{contributedImageFilename: string, contributionId: string} | null> {
+    const row = await this.get<any>(
+      'SELECT contributed_image_filename, id FROM hex_regions WHERE image_id = ? AND q = ? AND r = ? AND contributed_image_filename IS NOT NULL LIMIT 1',
+      [imageId, q, r]
+    );
+    
+    if (!row) return null;
+    
+    return {
+      contributedImageFilename: row.contributed_image_filename,
+      contributionId: row.id
+    };
+  }
+
+  async createChildHexLevel(parentImageId: string, parentQ: number, parentR: number, contributedImageFilename: string): Promise<string> {
+    // Create a new "virtual" image entry for the contributed image as a new zoom level
+    const childImageId = `${parentImageId}_${parentQ}_${parentR}`;
+    
+    // Check if child level already exists
+    const existing = await this.get<any>(
+      'SELECT id FROM images WHERE id = ?',
+      [childImageId]
+    );
+    
+    if (existing) return childImageId;
+    
+    // Create new image entry for the contributed image
+    await this.run(
+      'INSERT INTO images (id, filename, description, width, height, uploaded_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        childImageId,
+        contributedImageFilename,
+        `Zoomed view of hex Q=${parentQ}, R=${parentR} from ${parentImageId}`,
+        1024, // Standard contributed image size
+        1024,
+        new Date().toISOString()
+      ]
+    );
+    
+    return childImageId;
+  }
+
+  async getParentImageId(childImageId: string): Promise<string | null> {
+    // Extract parent image ID from child image ID pattern
+    const match = childImageId.match(/^(.+)_(-?\d+)_(-?\d+)$/);
+    if (!match) return null;
+    
+    return match[1];
+  }
+
+  async getBreadcrumbPath(imageId: string): Promise<Array<{imageId: string, q?: number, r?: number, level: number}>> {
+    const path = [];
+    let currentImageId = imageId;
+    let level = await this.calculateHexLevel(currentImageId);
+    
+    while (currentImageId) {
+      const match = currentImageId.match(/^(.+)_(-?\d+)_(-?\d+)$/);
+      if (match) {
+        const parentImageId = match[1];
+        const q = parseInt(match[2]);
+        const r = parseInt(match[3]);
+        
+        path.unshift({
+          imageId: currentImageId,
+          q,
+          r,
+          level
+        });
+        
+        currentImageId = parentImageId;
+        level--;
+      } else {
+        // Root level
+        path.unshift({
+          imageId: currentImageId,
+          level
+        });
+        break;
+      }
+    }
+    
+    return path;
+  }
+
+  private async calculateHexLevel(imageId: string): Promise<number> {
+    // Count the number of parent levels by parsing the image ID
+    const matches = imageId.match(/_(-?\d+)_(-?\d+)/g);
+    return matches ? matches.length + 1 : 1;
+  }
+
+  private async getParentContext(imageId: string, level: number): Promise<any> {
+    if (level === 1) {
+      // Root level - get world/image description
+      const parentImage = await this.getImageForContext(imageId);
+      return parentImage ? {
+        description: parentImage.description,
+        type: 'world'
+      } : null;
+    } else {
+      // Child level - get parent hex context
+      const parentImageId = await this.getParentImageId(imageId);
+      if (!parentImageId) return null;
+      
+      const match = imageId.match(/^.+_(-?\d+)_(-?\d+)$/);
+      if (!match) return null;
+      
+      const parentQ = parseInt(match[1]);
+      const parentR = parseInt(match[2]);
+      
+      const parentHex = await this.getHexContribution(parentImageId, parentQ, parentR);
+      return parentHex ? {
+        q: parentQ,
+        r: parentR,
+        description: parentHex.description,
+        type: 'hex'
+      } : null;
+    }
   }
 
   private async getImageForContext(imageId: string): Promise<ImageRecord | null> {

@@ -3,6 +3,7 @@ import './App.css';
 import { HexGrid } from './components/HexGrid';
 import { ContributionModal } from './components/ContributionModal';
 import { AuthHeader, LoginModal } from './components/AuthComponents';
+import { HexNavigation } from './components/HexNavigation';
 import { imageService, authService, hexService } from './services/api';
 import { ImageData, HexCoordinates, HexContribution, User, HexContext } from './types';
 
@@ -24,6 +25,9 @@ function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [username, setUsername] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [zoomableHexes, setZoomableHexes] = useState<Array<{q: number, r: number, contributedImageFilename: string}>>([]);
+  const [breadcrumbs, setBreadcrumbs] = useState<Array<{imageId: string, q?: number, r?: number, level: number}>>([]);
+  const [currentImageId, setCurrentImageId] = useState<string>('');
 
   useEffect(() => {
     fetchImages();
@@ -79,11 +83,80 @@ function App() {
     }
   };
 
-  const loadImageWithHexOverlay = (image: ImageData) => {
+  const loadImageWithHexOverlay = async (image: ImageData) => {
     console.log('Setting selected image:', image);
     setSelectedImage(image);
+    setCurrentImageId(image.id);
     setHexExtraction(null);
     setSelectedHexCoords(null);
+    
+    // Load zoomable hexes for this image
+    await fetchZoomableHexes(image.id);
+    
+    // Load breadcrumbs for this image
+    await fetchBreadcrumbs(image.id);
+  };
+
+  const fetchZoomableHexes = async (imageId: string) => {
+    try {
+      const zoomable = await hexService.getZoomableHexes(imageId);
+      setZoomableHexes(zoomable);
+    } catch (error) {
+      console.error('Error fetching zoomable hexes:', error);
+      setZoomableHexes([]);
+    }
+  };
+
+  const fetchBreadcrumbs = async (imageId: string) => {
+    try {
+      const breadcrumbData = await hexService.getBreadcrumbs(imageId);
+      setBreadcrumbs(breadcrumbData);
+    } catch (error) {
+      console.error('Error fetching breadcrumbs:', error);
+      setBreadcrumbs([{ imageId, level: 1 }]);
+    }
+  };
+
+  const handleHexZoom = async (hexCoords: HexCoordinates) => {
+    if (!selectedImage) return;
+    
+    try {
+      const zoomData = await hexService.zoomIntoHex(selectedImage.id, hexCoords.q, hexCoords.r);
+      
+      // Create new image data for the zoomed level
+      const childImage: ImageData = {
+        id: zoomData.childImageId,
+        filename: zoomData.contributedImageFilename,
+        description: `Zoomed view of hex Q=${hexCoords.q}, R=${hexCoords.r}`,
+        width: 1024,
+        height: 1024,
+        uploadedAt: new Date().toISOString()
+      };
+      
+      await loadImageWithHexOverlay(childImage);
+      
+    } catch (error) {
+      console.error('Error zooming into hex:', error);
+    }
+  };
+
+  const handleNavigate = async (imageId: string) => {
+    // Find the image in our images array or create a representation
+    let targetImage = images.find(img => img.id === imageId);
+    
+    if (!targetImage) {
+      // This might be a child image, we need to get its info
+      targetImage = {
+        id: imageId,
+        filename: imageId.includes('_') ? 'contributed_image' : 'unknown',
+        description: 'Navigated image',
+        width: 1024,
+        height: 1024,
+        uploadedAt: new Date().toISOString()
+      };
+    }
+    
+    await loadImageWithHexOverlay(targetImage);
   };
 
   const handleHexClick = async (hexCoords: HexCoordinates) => {
@@ -262,12 +335,23 @@ function App() {
 
         {/* Right Panel */}
         <div className="right-panel">
+          {/* Navigation */}
+          {selectedImage && (
+            <HexNavigation
+              breadcrumbs={breadcrumbs}
+              currentImageId={currentImageId}
+              onNavigate={handleNavigate}
+            />
+          )}
+          
           {/* Hex Grid Viewer */}
           {selectedImage && (
             <HexGrid
               selectedImage={selectedImage}
               hexContributions={hexContributions}
               onHexClick={handleHexClick}
+              onHexZoom={handleHexZoom}
+              zoomableHexes={zoomableHexes}
             />
           )}
         </div>

@@ -24,6 +24,22 @@ export class HexProcessor {
     };
   }
 
+  // Get the correct file path for an image (uploads or contributions)
+  private getImagePath(filename: string): string {
+    // Check if it's a contribution image (ends with _contribution.ext)
+    if (filename.includes('_contribution')) {
+      return path.join(__dirname, '../contributions', filename);
+    }
+    // Otherwise it's a regular upload
+    return path.join(__dirname, '../uploads', filename);
+  }
+
+  // Get dimensions from filename (checks both uploads and contributions)
+  async getImageDimensionsFromFilename(filename: string): Promise<{ width: number; height: number }> {
+    const imagePath = this.getImagePath(filename);
+    return this.getImageDimensions(imagePath);
+  }
+
   // Convert hex coordinates to pixel coordinates
   hexToPixel(q: number, r: number): Point {
     const x = this.hexSize * (3/2 * q);
@@ -76,7 +92,7 @@ export class HexProcessor {
 
   // Extract a hex-shaped region from an image
   async extractHexRegion(filename: string, q: number, r: number, imageWidth: number, imageHeight: number): Promise<Buffer> {
-    const imagePath = path.join(__dirname, '../uploads', filename);
+    const imagePath = this.getImagePath(filename);
     const vertices = this.getHexVertices(q, r);
     
     // Find bounding box of the hex
@@ -152,7 +168,7 @@ export class HexProcessor {
 
   // Generate an image showing the hex within a surrounding grid context
   async generateHexGridView(filename: string, centerQ: number, centerR: number, imageWidth: number, imageHeight: number): Promise<Buffer> {
-    const imagePath = path.join(__dirname, '../uploads', filename);
+    const imagePath = this.getImagePath(filename);
     const gridSize = 3; // 3x3 grid around the center hex
     const halfGrid = Math.floor(gridSize / 2);
     

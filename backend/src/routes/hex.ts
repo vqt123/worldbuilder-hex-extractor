@@ -208,5 +208,75 @@ export const createHexRoutes = (database: DatabaseService, hexProcessor: HexProc
     }
   });
 
+  // New zoom-related endpoints
+  router.get('/hex-zoomable/:imageId', async (req, res) => {
+    try {
+      const { imageId } = req.params;
+      const zoomableHexes = await database.getZoomableHexes(imageId);
+      res.json(zoomableHexes);
+    } catch (error) {
+      console.error('Error fetching zoomable hexes:', error);
+      res.status(500).json({ error: 'Failed to fetch zoomable hexes' });
+    }
+  });
+
+  router.get('/hex-zoom/:imageId/:q/:r', async (req, res) => {
+    try {
+      const { imageId, q, r } = req.params;
+      const qCoord = parseInt(q);
+      const rCoord = parseInt(r);
+      
+      const zoomData = await database.getZoomImageData(imageId, qCoord, rCoord);
+      if (!zoomData) {
+        return res.status(404).json({ error: 'No zoomable image found for this hex' });
+      }
+
+      // Create child hex level if it doesn't exist
+      const childImageId = await database.createChildHexLevel(
+        imageId, 
+        qCoord, 
+        rCoord, 
+        zoomData.contributedImageFilename
+      );
+
+      res.json({
+        success: true,
+        childImageId,
+        contributedImageFilename: zoomData.contributedImageFilename,
+        contributionId: zoomData.contributionId
+      });
+    } catch (error) {
+      console.error('Error processing hex zoom:', error);
+      res.status(500).json({ error: 'Failed to process hex zoom' });
+    }
+  });
+
+  router.get('/hex-breadcrumbs/:imageId', async (req, res) => {
+    try {
+      const { imageId } = req.params;
+      const breadcrumbs = await database.getBreadcrumbPath(imageId);
+      res.json(breadcrumbs);
+    } catch (error) {
+      console.error('Error fetching breadcrumbs:', error);
+      res.status(500).json({ error: 'Failed to fetch breadcrumbs' });
+    }
+  });
+
+  router.get('/hex-parent/:imageId', async (req, res) => {
+    try {
+      const { imageId } = req.params;
+      const parentImageId = await database.getParentImageId(imageId);
+      
+      if (!parentImageId) {
+        return res.status(404).json({ error: 'No parent image found' });
+      }
+
+      res.json({ parentImageId });
+    } catch (error) {
+      console.error('Error fetching parent image:', error);
+      res.status(500).json({ error: 'Failed to fetch parent image' });
+    }
+  });
+
   return router;
 };

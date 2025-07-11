@@ -92,5 +92,29 @@ export const hexService = {
     const response = await fetch(`${API_BASE}/api/hex-context/${imageId}/${q}/${r}`);
     if (!response.ok) throw new Error('Failed to fetch hex context');
     return response.json();
+  },
+
+  async getZoomableHexes(imageId: string): Promise<Array<{q: number, r: number, contributedImageFilename: string}>> {
+    const response = await fetch(`${API_BASE}/api/hex-zoomable/${imageId}`);
+    if (!response.ok) throw new Error('Failed to fetch zoomable hexes');
+    return response.json();
+  },
+
+  async zoomIntoHex(imageId: string, q: number, r: number): Promise<{success: boolean, childImageId: string, contributedImageFilename: string}> {
+    const response = await fetch(`${API_BASE}/api/hex-zoom/${imageId}/${q}/${r}`);
+    if (!response.ok) throw new Error('Failed to zoom into hex');
+    return response.json();
+  },
+
+  async getBreadcrumbs(imageId: string): Promise<Array<{imageId: string, q?: number, r?: number, level: number}>> {
+    const response = await fetch(`${API_BASE}/api/hex-breadcrumbs/${imageId}`);
+    if (!response.ok) throw new Error('Failed to fetch breadcrumbs');
+    return response.json();
+  },
+
+  async getParentImageId(imageId: string): Promise<{parentImageId: string}> {
+    const response = await fetch(`${API_BASE}/api/hex-parent/${imageId}`);
+    if (!response.ok) throw new Error('Failed to fetch parent image');
+    return response.json();
   }
 };

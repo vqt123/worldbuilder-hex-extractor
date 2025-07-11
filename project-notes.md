@@ -3,7 +3,68 @@
 ## Project Overview
 A hex-grid based collaborative world-building system where multiple users can contribute descriptions and images to different regions of fantasy world maps.
 
-## Recent Implementation: Code Refactoring & Spring Cleaning
+## Recent Implementation: Hex Zoom-In Feature
+
+### Implementation Date
+July 11, 2025
+
+### Feature Overview
+Implemented hierarchical hex exploration system where clicking on hexes with contributed images allows zooming in to view those images as new base maps with their own hex grids. This enables deep, nested world exploration where users can progressively zoom into more detailed areas.
+
+### Key Features Implemented
+
+**1. Backend Hierarchy System:**
+- Database enhancements with `getZoomableHexes()`, `createChildHexLevel()`, `getBreadcrumbPath()` methods
+- New API endpoints: `/api/hex-zoomable/:imageId`, `/api/hex-zoom/:imageId/:q/:r`, `/api/hex-breadcrumbs/:imageId`
+- Image processing updates to handle contributed images as base images
+- Hierarchical image ID system (e.g., `parentId_q_r` for child levels)
+
+**2. Frontend Zoom Interface:**
+- Enhanced HexGrid component with visual indicators for zoomable hexes (gold borders with + icons)
+- Navigation system with breadcrumb support for multi-level exploration
+- State management for zoom levels, breadcrumbs, and zoomable hex tracking
+- Click handler differentiation: normal click for contribution modal, zoomable hex click for zoom-in
+
+**3. Visual Design:**
+- **Green hexes**: Empty hexes available for contribution
+- **Blue hexes**: Hexes with text/content contributions
+- **Gold hexes with + icons**: Hexes with image contributions that can be zoomed into
+- Breadcrumb navigation showing current level and path back to root
+
+### Technical Implementation Details
+
+**Database Schema Support:**
+- Existing `zoom_level` and `parent_image_id` fields now fully utilized
+- Virtual image entries created for contributed images to serve as new base maps
+- Parent-child relationship tracking via naming convention
+
+**Frontend Architecture:**
+- `onHexClick` for contribution modal
+- `onHexZoom` for zoom-in functionality  
+- `zoomableHexes` prop passed to HexGrid for visual indicators
+- Navigation state management with breadcrumbs and current level tracking
+
+**API Integration:**
+- Zoom endpoint creates child image entries and returns child image ID
+- Breadcrumb endpoint provides navigation path for current zoom level
+- Zoomable hexes endpoint identifies which hexes have image contributions
+
+### Testing Results
+- ✅ Hex grid loads with proper visual indicators
+- ✅ Backend API endpoints respond correctly
+- ✅ Database methods integrated successfully
+- ✅ Navigation system renders (hidden at root level as expected)
+- ✅ Frontend compiles without errors
+- ✅ Image contributions detected (Q=7, R=2 confirmed zoomable)
+
+### Success Criteria Met
+- Users can see visual indicators for zoomable hexes
+- Backend supports hierarchical zoom operations
+- Frontend state management handles multiple zoom levels
+- Navigation system provides breadcrumb trail
+- Context system updated for multi-level hierarchies
+
+## Previous Implementation: Code Refactoring & Spring Cleaning
 
 ### Implementation Date
 July 10, 2025

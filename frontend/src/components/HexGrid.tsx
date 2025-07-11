@@ -6,12 +6,16 @@ interface HexGridProps {
   selectedImage: ImageData;
   hexContributions: HexContribution[];
   onHexClick: (coords: HexCoordinates) => void;
+  onHexZoom?: (coords: HexCoordinates) => void;
+  zoomableHexes?: Array<{q: number, r: number, contributedImageFilename: string}>;
 }
 
 export const HexGrid: React.FC<HexGridProps> = ({ 
   selectedImage, 
   hexContributions, 
-  onHexClick 
+  onHexClick,
+  onHexZoom,
+  zoomableHexes = []
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { hexToPixel, pixelToHex, drawHexagon } = useHexOperations();
@@ -51,9 +55,13 @@ export const HexGrid: React.FC<HexGridProps> = ({
           
           // Check if this hex has a contribution
           const hasContribution = hexContributions.some(contrib => contrib.q === q && contrib.r === r);
+          const isZoomable = zoomableHexes.some(hex => hex.q === q && hex.r === r);
           
           // Set hex border color based on contribution status
-          if (hasContribution) {
+          if (isZoomable) {
+            ctx.strokeStyle = '#ffd700'; // Gold for zoomable hexes
+            ctx.lineWidth = 4;
+          } else if (hasContribution) {
             ctx.strokeStyle = '#61dafb'; // Blue for contributed hexes
             ctx.lineWidth = 3;
           } else {
@@ -64,14 +72,31 @@ export const HexGrid: React.FC<HexGridProps> = ({
           drawHexagon(ctx, displayCenter.x, displayCenter.y, displayHexSize);
           
           // Draw small dot at center - different colors for different states
-          if (hasContribution) {
+          if (isZoomable) {
+            ctx.fillStyle = '#ffd700'; // Gold dot for zoomable
+            ctx.beginPath();
+            ctx.arc(displayCenter.x, displayCenter.y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            // Add zoom icon (small plus)
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(displayCenter.x - 3, displayCenter.y);
+            ctx.lineTo(displayCenter.x + 3, displayCenter.y);
+            ctx.moveTo(displayCenter.x, displayCenter.y - 3);
+            ctx.lineTo(displayCenter.x, displayCenter.y + 3);
+            ctx.stroke();
+          } else if (hasContribution) {
             ctx.fillStyle = '#61dafb'; // Blue dot for contributed
+            ctx.beginPath();
+            ctx.arc(displayCenter.x, displayCenter.y, 3, 0, 2 * Math.PI);
+            ctx.fill();
           } else {
             ctx.fillStyle = '#ff0000'; // Red dot for empty (debugging)
+            ctx.beginPath();
+            ctx.arc(displayCenter.x, displayCenter.y, 3, 0, 2 * Math.PI);
+            ctx.fill();
           }
-          ctx.beginPath();
-          ctx.arc(displayCenter.x, displayCenter.y, 3, 0, 2 * Math.PI);
-          ctx.fill();
           
           // Draw coordinate label for debugging (only for a few hexes)
           if (q >= 6 && q <= 8 && r >= 1 && r <= 3) {
@@ -139,11 +164,17 @@ export const HexGrid: React.FC<HexGridProps> = ({
         console.error('Image src:', `http://localhost:3002/uploads/${selectedImage.filename}`);
       };
       
-      const imageSrc = `http://localhost:3002/uploads/${selectedImage.filename}`;
+      // Determine the correct image source based on filename
+      let imageSrc: string;
+      if (selectedImage.filename.includes('_contribution')) {
+        imageSrc = `http://localhost:3002/api/contributions/${selectedImage.filename}`;
+      } else {
+        imageSrc = `http://localhost:3002/uploads/${selectedImage.filename}`;
+      }
       console.log('Setting image src:', imageSrc);
       img.src = imageSrc;
     }, 100); // Small delay to ensure canvas is rendered
-  }, [selectedImage, hexContributions]);
+  }, [selectedImage, hexContributions, zoomableHexes]);
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!selectedImage || !canvasRef.current) return;
@@ -189,13 +220,22 @@ export const HexGrid: React.FC<HexGridProps> = ({
       deltaY: originalImageY - hexCenterPixels.y 
     });
     
-    onHexClick(hexCoords);
+    // Check if this hex is zoomable
+    const isZoomable = zoomableHexes.some(hex => hex.q === hexCoords.q && hex.r === hexCoords.r);
+    
+    if (isZoomable && onHexZoom) {
+      console.log('Zooming into hex:', hexCoords);
+      onHexZoom(hexCoords);
+    } else {
+      console.log('Opening contribution modal for hex:', hexCoords);
+      onHexClick(hexCoords);
+    }
   };
 
   return (
     <div className="hex-viewer">
       <h2>Hex Grid Viewer</h2>
-      <p>Click on a hex cell to contribute content. Blue hexes already have contributions.</p>
+      <p>Click on a hex cell to contribute content. Blue hexes have contributions. Gold hexes with + icons can be zoomed into.</p>
       <canvas
         ref={canvasRef}
         onClick={handleCanvasClick}

@@ -72,4 +72,25 @@ export class Database {
   async getSiblingHexes(imageId: string, centerQ: number, centerR: number) {
     return this.hexRepo.getSiblingHexes(imageId, centerQ, centerR);
   }
+
+  // New zoom methods
+  async getZoomableHexes(imageId: string) {
+    return this.hexRepo.getZoomableHexes(imageId);
+  }
+
+  async getZoomImageData(imageId: string, q: number, r: number) {
+    return this.hexRepo.getZoomImageData(imageId, q, r);
+  }
+
+  async createChildHexLevel(parentImageId: string, parentQ: number, parentR: number, contributedImageFilename: string) {
+    return this.hexRepo.createChildHexLevel(parentImageId, parentQ, parentR, contributedImageFilename);
+  }
+
+  async getParentImageId(childImageId: string) {
+    return this.hexRepo.getParentImageId(childImageId);
+  }
+
+  async getBreadcrumbPath(imageId: string) {
+    return this.hexRepo.getBreadcrumbPath(imageId);
+  }
 }
