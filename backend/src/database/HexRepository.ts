@@ -80,6 +80,10 @@ export class HexRepository extends Database {
       updateFields.push('contributed_image_filename = ?');
       updateValues.push(updates.contributedImageFilename);
     }
+    if (updates.userId !== undefined) {
+      updateFields.push('user_id = ?');
+      updateValues.push(updates.userId);
+    }
 
     if (updateFields.length === 0) return;
 
@@ -101,6 +105,9 @@ export class HexRepository extends Database {
       { q: centerQ - 1, r: centerR + 1 }, // Southwest
       { q: centerQ, r: centerR + 1 }      // Southeast
     ];
+    
+    console.log(`🔍 Getting siblings for center Q=${centerQ}, R=${centerR}:`);
+    console.log('📍 Neighbor coordinates:', neighborCoords);
 
     const siblings = [];
     for (const coord of neighborCoords) {
@@ -365,9 +372,8 @@ export class HexRepository extends Database {
     summary += `SURROUNDING AREAS:\n`;
     for (const sibling of siblings) {
       const desc = sibling.description || "No description yet";
-      // Truncate long descriptions to first 200 characters + ellipsis for context
-      const truncatedDesc = desc.length > 200 ? desc.substring(0, 200) + "..." : desc;
-      summary += `- Hex Q=${sibling.q}, R=${sibling.r}: "${truncatedDesc}"\n`;
+      // Show full descriptions for complete context
+      summary += `- Hex Q=${sibling.q}, R=${sibling.r}: "${desc}"\n`;
     }
     
     return summary;
@@ -378,10 +384,18 @@ export class HexRepository extends Database {
     
     prompt += `HEX DESCRIPTION:\n${userDescription}\n\n`;
     
-    prompt += `SPATIAL CONTEXT:\n`;
+    prompt += `SPATIAL CONTEXT & SCALE:\n`;
     prompt += `- This hex is at coordinates Q=${q}, R=${r} within a grid spanning Q=${gridInfo.minQ} to Q=${gridInfo.maxQ}, R=${gridInfo.minR} to R=${gridInfo.maxR}\n`;
     prompt += `- Total grid size: ~${gridInfo.totalHexes} hexes covering ${gridInfo.imageWidth}x${gridInfo.imageHeight} pixels\n`;
-    prompt += `- Zoom level: ${level} (higher numbers = more detailed view)\n\n`;
+    prompt += `- Zoom level: ${level} (higher numbers = more detailed view)\n`;
+    prompt += `- Scale context: This represents 1/${gridInfo.totalHexes} of the total world area\n`;
+    prompt += `- Area coverage: Each hex represents approximately ${Math.round(gridInfo.imageWidth * gridInfo.imageHeight / gridInfo.totalHexes)} square pixels of world area\n\n`;
+    
+    prompt += `IMAGE SCALE REQUIREMENTS:\n`;
+    prompt += `- Generate a 1024x1024 pixel image that represents this single hex region\n`;
+    prompt += `- The image should show ${level === 1 ? 'regional-scale' : 'local-scale'} detail appropriate for ${gridInfo.totalHexes < 100 ? 'a small area' : gridInfo.totalHexes < 500 ? 'a medium region' : 'a large continent'}\n`;
+    prompt += `- Detail level: ${level === 1 ? 'Show major landmarks, districts, or biome features' : 'Show detailed terrain, buildings, or specific locations'}\n`;
+    prompt += `- Geographic scope: ${gridInfo.totalHexes < 100 ? 'Detailed local area (city district, small valley)' : gridInfo.totalHexes < 500 ? 'Regional area (city, large forest, mountain range)' : 'Continental area (kingdoms, major biomes, large geographic features)'}\n\n`;
     
     prompt += `PARENT MAP STYLE:\n`;
     prompt += `- Art style: Fantasy map with aged parchment aesthetic\n`;
@@ -390,7 +404,7 @@ export class HexRepository extends Database {
     prompt += `- Perspective: Top-down map view, same angle as parent\n\n`;
     
     prompt += `VISUAL REQUIREMENTS:\n`;
-    prompt += `- Dimensions: 1024x1024 pixels (same as parent hex size)\n`;
+    prompt += `- Dimensions: 1024x1024 pixels (covering this single hex's area)\n`;
     prompt += `- Seamless edges that blend with surrounding hexes\n`;
     prompt += `- Consistent lighting and artistic style with parent map\n`;
     prompt += `- Include geographic features mentioned in description\n`;

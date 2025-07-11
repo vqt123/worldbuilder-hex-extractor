@@ -94,12 +94,58 @@ export const createHexRoutes = (database: DatabaseService, hexProcessor: HexProc
     try {
       const { imageId, q, r } = req.params;
       const userId = req.session.userId!;
+      const username = req.session.username;
+      
+      console.log(`🔍 Fetching user contribution for:`, { 
+        imageId, 
+        q: parseInt(q), 
+        r: parseInt(r), 
+        userId, 
+        username 
+      });
+      
       const contribution = await database.getUserHexContribution(imageId, parseInt(q), parseInt(r), userId);
 
       if (!contribution) {
+        // Debug: Check if there's ANY contribution at this location
+        const allContributions = await database.getAllHexContributions(imageId, parseInt(q), parseInt(r));
+        console.log(`❌ No contribution found for user ${username} (${userId}) at Q=${q}, R=${r}`);
+        console.log(`🔍 All contributions at this location:`, allContributions.map(c => ({
+          id: c.id,
+          userId: c.userId,
+          contributorName: c.contributorName,
+          hasImage: !!c.contributedImageFilename
+        })));
+        
+        // Check if there's a contribution with matching contributorName but null userId (legacy data)
+        const legacyContribution = allContributions.find(c => 
+          c.contributorName === username && c.userId === null
+        );
+        
+        if (legacyContribution) {
+          console.log(`🔧 Found legacy contribution with matching name, migrating to user ID:`, legacyContribution.id);
+          // Update the legacy contribution to associate with current user
+          await database.updateHexContribution(legacyContribution.id, { userId });
+          console.log(`✅ Successfully migrated legacy contribution to user ${username} (${userId})`);
+          
+          // Now fetch the updated contribution
+          const updatedContribution = await database.getUserHexContribution(imageId, parseInt(q), parseInt(r), userId);
+          if (updatedContribution) {
+            console.log(`✅ Successfully retrieved migrated contribution`);
+            res.json(updatedContribution);
+            return;
+          }
+        }
+        
         return res.status(404).json({ error: 'No contribution found for this user' });
       }
 
+      console.log(`✅ Found user contribution:`, { 
+        contributionId: contribution.id, 
+        description: contribution.description?.substring(0, 50) + '...',
+        hasImage: !!contribution.contributedImageFilename
+      });
+      
       res.json(contribution);
     } catch (error) {
       console.error('Error fetching user hex contribution:', error);

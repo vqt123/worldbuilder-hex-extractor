@@ -14,17 +14,24 @@ export const createAuthRoutes = (database: DatabaseService) => {
 
       const trimmedUsername = username.trim();
       
+      console.log(`🔍 Login attempt for username: "${trimmedUsername}"`);
+      
       // Try to get existing user
       let user = await database.getUserByUsername(trimmedUsername);
       
-      // If user doesn't exist, create them
-      if (!user) {
+      if (user) {
+        console.log(`✅ Found existing user:`, { id: user.id, username: user.username });
+      } else {
+        console.log(`❌ No existing user found, creating new user for: "${trimmedUsername}"`);
         user = await database.createUser(trimmedUsername);
+        console.log(`✅ Created new user:`, { id: user.id, username: user.username });
       }
 
       // Set session
       req.session.userId = user.id;
       req.session.username = user.username;
+      
+      console.log(`🔐 Session set:`, { userId: user.id, username: user.username });
 
       res.json({
         success: true,
