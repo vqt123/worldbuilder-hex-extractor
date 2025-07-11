@@ -18,6 +18,7 @@ ALWAYS create a comprehensive todo list that includes ALL mandatory requirements
 - TASK COMPLETION tasks (update project-notes.md with implementation details)
 - SERVER MANAGEMENT tasks (proper nohup/PID tracking when needed)
 
+
 ### ERROR HANDLING PROTOCOL
 **WHEN TOOLS ARE UNAVAILABLE OR ERRORS OCCUR**:
 1. STOP immediately - do not create workarounds

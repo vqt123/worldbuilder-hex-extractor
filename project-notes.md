@@ -3,7 +3,31 @@
 ## Project Overview
 A hex-grid based collaborative world-building system where multiple users can contribute descriptions and images to different regions of fantasy world maps.
 
-## Recent Implementation: Hex Zoom-In Feature
+## Recent Implementation: AI Context Scale Enhancement
+
+### Implementation Date
+July 11, 2025
+
+### Feature Overview
+Enhanced AI context generation system to include grid scale information in prompts. This ensures AI image generation understands whether hex coordinates represent small grids (30 hexes) or large grids (10,000+ hexes), enabling better contextual image generation that matches the intended scale and detail level.
+
+### Technical Implementation
+**Grid Dimension Calculation:**
+- Added `getGridDimensions()` method in `HexRepository.ts` to calculate hex grid boundaries
+- Computes `minQ/maxQ`, `minR/maxR`, `totalHexes`, and image dimensions
+- Uses same logic as frontend hex grid rendering for consistency
+
+**Enhanced Context Generation:**
+- Updated `formatContextSummary()` to include grid scale information
+- Enhanced `formatImagePrompt()` with spatial context for AI image generation
+- Prompts now include statements like "Grid spanning Q=-2 to Q=16, R=-2 to R=12 (total ~285 hexes)"
+
+**Project Maintenance:**
+- Updated `.gitignore` to exclude `dist/` files, database files, and build artifacts
+- Updated `CLAUDE.md` with anti-hanging protocols for server startup
+- Cleaned up staged files to prevent unnecessary commits
+
+### Previous Implementation: Hex Zoom-In Feature
 
 ### Implementation Date
 July 11, 2025

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { ImageData, HexCoordinates, HexContribution } from '../types';
 import { useHexOperations } from '../hooks/useHexOperations';
 
@@ -19,6 +19,7 @@ export const HexGrid: React.FC<HexGridProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { hexToPixel, pixelToHex, drawHexagon } = useHexOperations();
+  const [lastClickedHex, setLastClickedHex] = useState<HexCoordinates>({ q: 7, r: 2 });
 
   const drawHexGrid = (ctx: CanvasRenderingContext2D, width: number, height: number, scale: number) => {
     const backendHexSize = 50; // Use same hex size as backend
@@ -220,6 +221,9 @@ export const HexGrid: React.FC<HexGridProps> = ({
       deltaY: originalImageY - hexCenterPixels.y 
     });
     
+    // Always track the last clicked hex for the contribute button
+    setLastClickedHex(hexCoords);
+    
     // Check if this hex is zoomable
     const isZoomable = zoomableHexes.some(hex => hex.q === hexCoords.q && hex.r === hexCoords.r);
     
@@ -236,11 +240,24 @@ export const HexGrid: React.FC<HexGridProps> = ({
     <div className="hex-viewer">
       <h2>Hex Grid Viewer</h2>
       <p>Click on a hex cell to contribute content. Blue hexes have contributions. Gold hexes with + icons can be zoomed into.</p>
-      <canvas
-        ref={canvasRef}
-        onClick={handleCanvasClick}
-        style={{ cursor: 'pointer' }}
-      />
+      <div className="hex-grid-container">
+        <canvas
+          ref={canvasRef}
+          onClick={handleCanvasClick}
+          style={{ cursor: 'pointer' }}
+        />
+        <div className="hex-grid-controls">
+          <button 
+            className="contribute-button"
+            onClick={() => {
+              console.log('Opening contribution modal for hex:', lastClickedHex);
+              onHexClick(lastClickedHex);
+            }}
+          >
+            + Contribute to Hex ({lastClickedHex.q}, {lastClickedHex.r})
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

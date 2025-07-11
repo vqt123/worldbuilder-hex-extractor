@@ -29,6 +29,40 @@
   gap: 20px;
 }
 
+/* Hex Grid Styles */
+.hex-grid-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.hex-grid-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.contribute-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.contribute-button:hover {
+  background-color: #45a049;
+}
+
+.contribute-button:active {
+  background-color: #3d8b40;
+}
+
 /* Navigation Styles */
 .hex-navigation {
   background-color: #3c4043;

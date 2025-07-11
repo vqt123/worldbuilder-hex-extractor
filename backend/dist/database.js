@@ -1,87 +1,76 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Database = void 0;
-const sqlite3_1 = __importDefault(require("sqlite3"));
-const path_1 = __importDefault(require("path"));
+// Temporary compatibility layer during refactoring
+const ImageRepository_1 = require("./database/ImageRepository");
+const UserRepository_1 = require("./database/UserRepository");
+const HexRepository_1 = require("./database/HexRepository");
 class Database {
     constructor() {
-        const dbPath = path_1.default.join(__dirname, '../database.sqlite');
-        this.db = new sqlite3_1.default.Database(dbPath);
-        this.initializeDatabase();
+        this.imageRepo = new ImageRepository_1.ImageRepository();
+        this.userRepo = new UserRepository_1.UserRepository();
+        this.hexRepo = new HexRepository_1.HexRepository();
     }
-    initializeDatabase() {
-        this.db.serialize(() => {
-            this.db.run(`
-        CREATE TABLE IF NOT EXISTS images (
-          id TEXT PRIMARY KEY,
-          filename TEXT NOT NULL,
-          description TEXT,
-          width INTEGER NOT NULL,
-          height INTEGER NOT NULL,
-          uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-            this.db.run(`
-        CREATE TABLE IF NOT EXISTS hex_regions (
-          id TEXT PRIMARY KEY,
-          image_id TEXT NOT NULL,
-          q INTEGER NOT NULL,
-          r INTEGER NOT NULL,
-          description TEXT,
-          FOREIGN KEY (image_id) REFERENCES images (id),
-          UNIQUE(image_id, q, r)
-        )
-      `);
-        });
-    }
+    // Image operations
     async saveImage(image) {
-        return new Promise((resolve, reject) => {
-            this.db.run('INSERT INTO images (id, filename, description, width, height) VALUES (?, ?, ?, ?, ?)', [image.id, image.filename, image.description, image.width, image.height], function (err) {
-                if (err)
-                    reject(err);
-                else
-                    resolve();
-            });
-        });
+        return this.imageRepo.saveImage(image);
     }
     async getAllImages() {
-        return new Promise((resolve, reject) => {
-            this.db.all('SELECT * FROM images ORDER BY uploaded_at DESC', [], (err, rows) => {
-                if (err)
-                    reject(err);
-                else
-                    resolve(rows.map(row => ({
-                        id: row.id,
-                        filename: row.filename,
-                        description: row.description,
-                        width: row.width,
-                        height: row.height,
-                        uploadedAt: new Date(row.uploaded_at)
-                    })));
-            });
-        });
+        return this.imageRepo.getAllImages();
     }
     async getImageById(id) {
-        return new Promise((resolve, reject) => {
-            this.db.get('SELECT * FROM images WHERE id = ?', [id], (err, row) => {
-                if (err)
-                    reject(err);
-                else if (!row)
-                    resolve(null);
-                else
-                    resolve({
-                        id: row.id,
-                        filename: row.filename,
-                        description: row.description,
-                        width: row.width,
-                        height: row.height,
-                        uploadedAt: new Date(row.uploaded_at)
-                    });
-            });
-        });
+        return this.imageRepo.getImageById(id);
+    }
+    // User operations
+    async createUser(username) {
+        return this.userRepo.createUser(username);
+    }
+    async getUserByUsername(username) {
+        return this.userRepo.getUserByUsername(username);
+    }
+    async getUserById(id) {
+        return this.userRepo.getUserById(id);
+    }
+    // Hex operations
+    async saveHexContribution(contribution) {
+        return this.hexRepo.saveHexContribution(contribution);
+    }
+    async getHexContribution(imageId, q, r) {
+        return this.hexRepo.getHexContribution(imageId, q, r);
+    }
+    async getHexContributionsByImage(imageId) {
+        return this.hexRepo.getHexContributionsByImage(imageId);
+    }
+    async getAllHexContributions(imageId, q, r) {
+        return this.hexRepo.getAllHexContributions(imageId, q, r);
+    }
+    async getUserHexContribution(imageId, q, r, userId) {
+        return this.hexRepo.getUserHexContribution(imageId, q, r, userId);
+    }
+    async updateHexContribution(id, updates) {
+        return this.hexRepo.updateHexContribution(id, updates);
+    }
+    async getHexContext(imageId, q, r) {
+        return this.hexRepo.getHexContext(imageId, q, r);
+    }
+    async getSiblingHexes(imageId, centerQ, centerR) {
+        return this.hexRepo.getSiblingHexes(imageId, centerQ, centerR);
+    }
+    // New zoom methods
+    async getZoomableHexes(imageId) {
+        return this.hexRepo.getZoomableHexes(imageId);
+    }
+    async getZoomImageData(imageId, q, r) {
+        return this.hexRepo.getZoomImageData(imageId, q, r);
+    }
+    async createChildHexLevel(parentImageId, parentQ, parentR, contributedImageFilename) {
+        return this.hexRepo.createChildHexLevel(parentImageId, parentQ, parentR, contributedImageFilename);
+    }
+    async getParentImageId(childImageId) {
+        return this.hexRepo.getParentImageId(childImageId);
+    }
+    async getBreadcrumbPath(imageId) {
+        return this.hexRepo.getBreadcrumbPath(imageId);
     }
 }
 exports.Database = Database;
