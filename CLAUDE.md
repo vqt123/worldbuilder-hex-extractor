@@ -39,8 +39,10 @@ ALWAYS create a comprehensive todo list that includes ALL mandatory requirements
 
 ### PROHIBITED ACTIONS
 **NEVER USE**:
+- `sleep` commands in bash (they hang indefinitely in tool context)
+- Command chaining with `&&` after server startup (causes hanging)
 - Arbitrary timeouts in bash commands
-- Background processes with `&` operator
+- Background processes with `&` operator (except for nohup server startup)
 - Simple scripts as workarounds to avoid running live servers
 - Workarounds or sample files when tools are unavailable
 - One-off demonstration files instead of addressing core issues
@@ -54,6 +56,19 @@ ALWAYS create a comprehensive todo list that includes ALL mandatory requirements
 - **END-TO-END TESTING**: Screenshots for visual components, clear pass/fail assessment
 - **TASK COMPLETION**: Update project-notes.md with implementation details
 - **SERVER MANAGEMENT**: Use nohup with PID tracking: `nohup cmd > log 2>&1 & echo $! > pid`
+- **ANTI-HANGING PROTOCOL**: Never use `sleep` or chain commands with `&&` after server startup
+
+### SERVER STARTUP PROTOCOL
+**CORRECT APPROACH:**
+1. Start server: `nohup npm start > log 2>&1 & echo $! > pid`
+2. **SEPARATE TOOL CALL**: Check status with `ps aux | grep npm`
+3. **SEPARATE TOOL CALL**: Check logs with `head -10 log`
+4. **SEPARATE TOOL CALL**: Test endpoints with `curl`
+
+**NEVER DO:**
+- `nohup npm start > log 2>&1 & echo $! > pid && sleep 3 && tail log` (HANGS)
+- Any command containing `sleep` (HANGS)
+- Chaining server startup with log checking using `&&` (HANGS)
 
 ## Referenced Documents
 - **Operational Learnings**: See `docs/operational-learnings.md` for detailed process improvements

@@ -129,16 +129,20 @@ export class HexRepository extends Database {
     // Get sibling hexes (surrounding hexes)
     const siblings = await this.getSiblingHexes(imageId, q, r);
     
+    // Get grid dimensions and boundaries for scale context
+    const gridInfo = await this.getGridDimensions(imageId);
+    
     // Create formatted text summary
-    const textSummary = this.formatContextSummary(q, r, level, parent, siblings);
+    const textSummary = this.formatContextSummary(q, r, level, parent, siblings, gridInfo);
     
     // Format image generation prompt (if current hex has description)
-    const imagePrompt = currentHex ? this.formatImagePrompt(q, r, level, parent, siblings, currentHex.description) : null;
+    const imagePrompt = currentHex ? this.formatImagePrompt(q, r, level, parent, siblings, currentHex.description, gridInfo) : null;
     
     return {
       current: { q, r, level },
       parent,
       siblings,
+      gridInfo,
       textSummary,
       imagePrompt
     };
@@ -241,6 +245,37 @@ export class HexRepository extends Database {
     return path;
   }
 
+  async getGridDimensions(imageId: string): Promise<{minQ: number, maxQ: number, minR: number, maxR: number, totalHexes: number, imageWidth: number, imageHeight: number}> {
+    // Get the image dimensions first
+    const image = await this.getImageForContext(imageId);
+    if (!image) {
+      return { minQ: 0, maxQ: 0, minR: 0, maxR: 0, totalHexes: 0, imageWidth: 1024, imageHeight: 1024 };
+    }
+    
+    // Calculate hex grid bounds based on image dimensions and hex size (50px)
+    const hexSize = 50;
+    const imageWidth = image.width;
+    const imageHeight = image.height;
+    
+    // Calculate reasonable grid bounds using the same logic as frontend
+    const maxQ = Math.ceil(imageWidth / (hexSize * 1.5)) + 2;
+    const maxR = Math.ceil(imageHeight / (hexSize * Math.sqrt(3))) + 2;
+    const minQ = -2;
+    const minR = -2;
+    
+    const totalHexes = (maxQ - minQ + 1) * (maxR - minR + 1);
+    
+    return {
+      minQ,
+      maxQ, 
+      minR,
+      maxR,
+      totalHexes,
+      imageWidth,
+      imageHeight
+    };
+  }
+
   private async calculateHexLevel(imageId: string): Promise<number> {
     // Count the number of parent levels by parsing the image ID
     const matches = imageId.match(/_(-?\d+)_(-?\d+)/g);
@@ -311,10 +346,13 @@ export class HexRepository extends Database {
     };
   }
 
-  private formatContextSummary(q: number, r: number, level: number, parent: any, siblings: any[]): string {
+  private formatContextSummary(q: number, r: number, level: number, parent: any, siblings: any[], gridInfo: any): string {
     let summary = `Please write a detailed description for this hex grid cell based on the following context. Create a vivid, immersive description that:\n- Fits naturally within the established world\n- References or connects to neighboring areas when appropriate\n- Maintains consistency with the overall setting\n- Provides rich detail for worldbuilding purposes\n\n`;
     
     summary += `CURRENT LOCATION: Hex Q=${q}, R=${r} (Level ${level})\n\n`;
+    
+    // Add grid scale information
+    summary += `GRID SCALE: This hex is at coordinates Q=${q}, R=${r} within a grid spanning Q=${gridInfo.minQ} to Q=${gridInfo.maxQ}, R=${gridInfo.minR} to R=${gridInfo.maxR} (total ~${gridInfo.totalHexes} hexes covering ${gridInfo.imageWidth}x${gridInfo.imageHeight} pixels)\n\n`;
     
     if (parent && parent.type === 'world') {
       summary += `WORLD CONTEXT:\n${parent.description}\n\n`;
@@ -333,10 +371,15 @@ export class HexRepository extends Database {
     return summary;
   }
 
-  private formatImagePrompt(q: number, r: number, level: number, parent: any, siblings: any[], userDescription: string): string {
+  private formatImagePrompt(q: number, r: number, level: number, parent: any, siblings: any[], userDescription: string, gridInfo: any): string {
     let prompt = `Generate a detailed map image for this hex region that seamlessly integrates with the parent map.\n\n`;
     
     prompt += `HEX DESCRIPTION:\n${userDescription}\n\n`;
+    
+    prompt += `SPATIAL CONTEXT:\n`;
+    prompt += `- This hex is at coordinates Q=${q}, R=${r} within a grid spanning Q=${gridInfo.minQ} to Q=${gridInfo.maxQ}, R=${gridInfo.minR} to R=${gridInfo.maxR}\n`;
+    prompt += `- Total grid size: ~${gridInfo.totalHexes} hexes covering ${gridInfo.imageWidth}x${gridInfo.imageHeight} pixels\n`;
+    prompt += `- Zoom level: ${level} (higher numbers = more detailed view)\n\n`;
     
     prompt += `PARENT MAP STYLE:\n`;
     prompt += `- Art style: Fantasy map with aged parchment aesthetic\n`;

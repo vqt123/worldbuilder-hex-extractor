@@ -8,8 +8,16 @@ server.pid
 # Dependencies
 node_modules/
 
+# Build Output
+dist/
+build/
+
 # Testing Artifacts
 screenshots/
+
+# Database Files
+*.sqlite
+*.db
 
 # Temporary Files
 /tmp/
