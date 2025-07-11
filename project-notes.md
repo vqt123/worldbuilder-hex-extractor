@@ -3,7 +3,143 @@
 ## Project Overview
 A hex-grid based collaborative world-building system where multiple users can contribute descriptions and images to different regions of fantasy world maps.
 
-## Recent Implementation: AI Context Scale Enhancement
+## Recent Implementation: Automatic Root Data Initialization
+
+### Implementation Date
+July 11, 2025
+
+### Feature Overview
+Enhanced database initialization to automatically load root world data from `rootDescription.txt` and `rootImage.png` files when the database is empty. This ensures that every fresh installation starts with the established world context and base map, providing immediate usability without manual setup.
+
+### Technical Implementation
+**Database Enhancement:**
+- Added `initializeRootData()` method to check if database is empty
+- Automatic loading of root description and image files during initialization
+- File copying from project root to uploads directory with proper naming
+- UUID generation for root image with consistent filename format
+
+**Root Data Loading:**
+- Reads `rootDescription.txt` from project root containing world overview
+- Copies `rootImage.png` to uploads directory with generated UUID filename
+- Inserts root image record with full world description as image metadata
+- Handles missing files gracefully with warning messages
+
+**File Management:**
+- Automatic uploads directory creation if it doesn't exist
+- Proper file copying with preserved content and metadata
+- Error handling for file access and database operations
+
+### User Experience Enhancement
+- **Before**: Fresh installations had empty databases requiring manual setup
+- **After**: Immediate availability of world context and base map
+- **Benefit**: Zero-configuration startup with rich world content
+- **Developer-Friendly**: Consistent initialization across all environments
+
+### Database Integration
+- Root data only loads when database is completely empty
+- Prevents duplicate initialization on existing databases
+- Maintains data integrity and prevents conflicts
+- Provides clear console logging for successful initialization
+
+### Previous Implementation: Context Prompt Optimization
+
+### Implementation Date
+July 11, 2025
+
+### Feature Overview
+Fixed context prompt truncation issues by optimizing the `formatContextSummary` method and improving textarea display in the contribution modal. Previously, surrounding hex descriptions were included in full, causing extremely long context prompts (15,000+ characters) that were truncated in the UI and potentially overwhelming for AI systems.
+
+### Technical Implementation
+**Backend Optimization:**
+- Truncated sibling hex descriptions to 200 characters with ellipsis
+- Maintains context relevance while keeping prompts manageable
+- Prevents UI truncation issues and improves readability
+
+**Frontend Improvements:**
+- Dynamic textarea sizing based on content length
+- Improved styling with monospace font and proper scrolling
+- Better visual feedback with minimum and maximum height constraints
+- Enhanced readability with proper padding and line spacing
+
+### User Experience Enhancement
+- **Before**: 15,000+ character context prompts that were truncated
+- **After**: ~800 character prompts with full context visible
+- **Benefit**: Users can see complete context without scrolling issues
+- **AI-Friendly**: Manageable prompt sizes for better AI processing
+
+### Previous Implementation: Drag-and-Drop Image Upload
+
+### Implementation Date
+July 11, 2025
+
+### Feature Overview
+Enhanced the contribution modal with drag-and-drop image upload functionality, allowing users to drag images directly from websites or local files instead of having to save and upload manually. This significantly improves the user experience by reducing friction in the contribution process.
+
+### Technical Implementation
+**Drag-and-Drop Support:**
+- Added drag event handlers for `dragenter`, `dragover`, `dragleave`, and `drop`
+- Supports both local file drops and image URLs dragged from websites
+- Handles CORS restrictions gracefully with proper error handling
+- Visual feedback during drag operations with border color changes and scaling
+
+**Enhanced File Input:**
+- Replaced basic file input with styled drag-and-drop zone
+- Clear visual indicators: "📁 Click to browse or drag & drop an image"
+- Web-specific guidance: "🌐 You can drag images directly from websites!"
+- Real-time preview of dropped/dragged images
+- Clear button to reset selected images
+
+**Error Handling:**
+- Graceful handling of CORS restrictions for external images
+- Fallback to preview-only mode when images can't be fetched
+- User-friendly error messages for network issues
+- Proper filename extraction from URLs
+
+### User Experience Enhancement
+- **Before**: Users had to save images locally, then upload via file dialog
+- **After**: Direct drag-and-drop from websites or local files
+- **Benefit**: Reduces friction in contribution process significantly
+- **Workflow**: Drag image from website → automatic preview → submit contribution
+
+### CSS Styling
+- Added comprehensive drag-and-drop zone styling
+- Hover effects and active state indicators
+- Responsive design with smooth transitions
+- Color-coded feedback (blue border, green on hover/active)
+
+### Previous Implementation: Persistent Contribution Button
+
+### Implementation Date
+July 11, 2025
+
+### Feature Overview
+Added persistent contribution button to hex grid interface that allows users to contribute to any hex cell regardless of zoom state. Previously, zoomable hexes (with contributed images) would zoom in when clicked, preventing users from adding additional contributions. This enhancement prepares the system for future voting mechanisms where multiple contributions per hex will be supported.
+
+### Technical Implementation
+**HexGrid Component Enhancement:**
+- Added state tracking for `lastClickedHex` coordinates
+- Added contribute button that displays current hex coordinates
+- Button opens contribution modal for the last clicked hex
+- Preserves existing zoom functionality while adding contribution access
+
+**UI/UX Improvements:**
+- Green-styled contribution button with hover effects
+- Button shows current hex coordinates: "Contribute to Hex (Q, R)"
+- Positioned below the hex grid canvas for easy access
+- Works in both root level and zoomed views
+
+**CSS Styling:**
+- Added `.hex-grid-container` for flex layout
+- Added `.hex-grid-controls` for button positioning
+- Added `.contribute-button` with green color scheme and transitions
+
+### User Experience Enhancement
+- **Before**: Zoomable hexes couldn't be contributed to (zoom took precedence)
+- **After**: Any hex can receive contributions via the persistent button
+- **Benefit**: Enables multiple contributions per hex, preparing for voting system
+- **Workflow**: Click hex → zoom/modal as before + always available contribute button
+
+### Previous Implementation: AI Context Scale Enhancement
 
 ### Implementation Date
 July 11, 2025

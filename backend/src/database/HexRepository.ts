@@ -365,7 +365,9 @@ export class HexRepository extends Database {
     summary += `SURROUNDING AREAS:\n`;
     for (const sibling of siblings) {
       const desc = sibling.description || "No description yet";
-      summary += `- Hex Q=${sibling.q}, R=${sibling.r}: "${desc}"\n`;
+      // Truncate long descriptions to first 200 characters + ellipsis for context
+      const truncatedDesc = desc.length > 200 ? desc.substring(0, 200) + "..." : desc;
+      summary += `- Hex Q=${sibling.q}, R=${sibling.r}: "${truncatedDesc}"\n`;
     }
     
     return summary;

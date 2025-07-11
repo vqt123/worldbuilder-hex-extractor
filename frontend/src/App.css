@@ -63,6 +63,87 @@
   background-color: #3d8b40;
 }
 
+/* Drag and Drop Styles */
+.drag-drop-zone {
+  border: 2px dashed #61dafb;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background-color: #2c3e50;
+  transition: all 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.drag-drop-zone.drag-active {
+  border-color: #4CAF50;
+  background-color: #3c5a47;
+  transform: scale(1.02);
+}
+
+.drag-drop-zone:hover {
+  border-color: #4CAF50;
+  background-color: #34495e;
+}
+
+.file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.drag-drop-content p {
+  margin: 5px 0;
+  color: #ecf0f1;
+}
+
+.drag-drop-content p:first-child {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.drag-drop-content p:last-child {
+  font-size: 14px;
+  color: #bdc3c7;
+}
+
+.dragged-image-preview {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #34495e;
+  border-radius: 6px;
+}
+
+.dragged-image-preview p {
+  margin: 5px 0;
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+/* Context Textarea Styles */
+.copyable-context textarea {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 10px;
+  resize: vertical;
+  overflow-y: auto;
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  border: 1px solid #34495e;
+  border-radius: 4px;
+}
+
+.copyable-context textarea:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
 /* Navigation Styles */
 .hex-navigation {
   background-color: #3c4043;

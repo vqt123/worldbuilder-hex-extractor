@@ -1,5 +1,7 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 
 export class Database {
   protected db: sqlite3.Database;
@@ -84,7 +86,80 @@ export class Database {
       this.db.run(`DROP TABLE IF EXISTS hex_regions_old`);
       this.db.run(`ALTER TABLE hex_regions RENAME TO hex_regions_old`);
       this.db.run(`ALTER TABLE hex_regions_new RENAME TO hex_regions`);
+      
+      // Initialize root data if database is empty
+      this.initializeRootData();
     });
+  }
+
+  private initializeRootData(): void {
+    // Check if we already have images (skip if database has data)
+    this.db.get('SELECT COUNT(*) as count FROM images', [], (err, row: any) => {
+      if (err) {
+        console.error('Error checking image count:', err);
+        return;
+      }
+      
+      if (row.count === 0) {
+        // Database is empty, initialize with root data
+        this.loadRootData();
+      }
+    });
+  }
+
+  private loadRootData(): void {
+    try {
+      // Load root description
+      const rootDescriptionPath = path.join(__dirname, '../../../rootDescription.txt');
+      const rootImagePath = path.join(__dirname, '../../../rootImage.png');
+      
+      if (!fs.existsSync(rootDescriptionPath) || !fs.existsSync(rootImagePath)) {
+        console.warn('Root files not found, skipping root data initialization');
+        return;
+      }
+      
+      const rootDescription = fs.readFileSync(rootDescriptionPath, 'utf-8');
+      const rootImageStats = fs.statSync(rootImagePath);
+      
+      // Generate root image ID
+      const rootImageId = uuidv4();
+      const rootImageFilename = `${rootImageId}-rootImage.png`;
+      
+      // Copy root image to uploads directory
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      
+      const targetImagePath = path.join(uploadsDir, rootImageFilename);
+      fs.copyFileSync(rootImagePath, targetImagePath);
+      
+      // Get image dimensions (assuming it's 1024x1024, could use image library if needed)
+      const imageWidth = 1024;
+      const imageHeight = 1024;
+      
+      // Insert root image into database
+      this.db.run(`
+        INSERT INTO images (id, filename, description, width, height, uploaded_at) 
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+        rootImageId,
+        rootImageFilename,
+        rootDescription,
+        imageWidth,
+        imageHeight,
+        new Date().toISOString()
+      ], (err) => {
+        if (err) {
+          console.error('Error inserting root image:', err);
+        } else {
+          console.log('✅ Root image and description initialized successfully');
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error loading root data:', error);
+    }
   }
 
   protected query<T>(sql: string, params: any[] = []): Promise<T[]> {

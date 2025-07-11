@@ -50,6 +50,7 @@ ALWAYS create a comprehensive todo list that includes ALL mandatory requirements
 - Installing new testing tools when existing ones are available (use playwright, not puppeteer)
 - Marking tasks as "tested" without actually running tests and taking screenshots
 - Creating screenshots outside the `/screenshots/` folder
+- **NEVER commit and push changes unless explicitly instructed by the user**
 
 ### MANDATORY REQUIREMENTS
 - **HIDDEN FILES/DIRECTORIES**: Check with `ls -la` or `find . -name ".*"`

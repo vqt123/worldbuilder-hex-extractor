@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { HexCoordinates, HexContribution, User, ImageData, HexContext } from '../types';
 
 interface ContributionModalProps {
@@ -38,6 +38,94 @@ export const ContributionModal: React.FC<ContributionModalProps> = ({
   onCopyToClipboard,
   onCopyImagePrompt
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [draggedImage, setDraggedImage] = useState<string | null>(null);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    try {
+      // Handle regular file drops first
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        // Regular file drop
+        if (fileInputRef.current) {
+          fileInputRef.current.files = files;
+        }
+        // Show preview for dropped file
+        const file = files[0];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setDraggedImage(e.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+        return;
+      }
+
+      // Handle image URLs dragged from websites
+      const imageUrl = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain");
+      
+      if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('https'))) {
+        // Create a preview of the dragged image
+        setDraggedImage(imageUrl);
+        
+        try {
+          // Try to fetch the image with mode: 'cors' to handle CORS properly
+          const response = await fetch(imageUrl, { mode: 'cors' });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const blob = await response.blob();
+          
+          // Extract filename from URL or use default
+          const urlPath = new URL(imageUrl).pathname;
+          const filename = urlPath.split('/').pop() || 'dragged-image.png';
+          
+          const file = new File([blob], filename, { type: blob.type });
+          
+          // Create a new FileList-like object
+          const fileList = {
+            0: file,
+            length: 1,
+            item: (index: number) => index === 0 ? file : null
+          };
+          
+          // Set the file input
+          if (fileInputRef.current) {
+            Object.defineProperty(fileInputRef.current, 'files', {
+              value: fileList,
+              writable: false
+            });
+          }
+        } catch (fetchError) {
+          console.warn('Unable to fetch image due to CORS or network restrictions:', fetchError);
+          // Still show the preview URL, but user will need to manually save and upload
+          alert('Image preview shown, but due to CORS restrictions, you may need to save the image locally and upload it manually.');
+        }
+      }
+    } catch (error) {
+      console.error('Error handling dropped content:', error);
+      setDraggedImage(null);
+    }
+  };
+
   if (!isOpen || !selectedHexCoords) return null;
 
   return (
@@ -115,8 +203,9 @@ export const ContributionModal: React.FC<ContributionModalProps> = ({
                 <textarea 
                   readOnly 
                   value={hexContext.textSummary}
-                  rows={8}
+                  rows={Math.min(Math.max(8, hexContext.textSummary.split('\n').length), 25)}
                   onClick={(e) => e.currentTarget.select()}
+                  style={{ minHeight: '200px', maxHeight: '400px' }}
                 />
               </div>
 
@@ -136,8 +225,9 @@ export const ContributionModal: React.FC<ContributionModalProps> = ({
                   <textarea 
                     readOnly 
                     value={hexContext.imagePrompt}
-                    rows={8}
+                    rows={Math.min(Math.max(8, hexContext.imagePrompt.split('\n').length), 20)}
                     onClick={(e) => e.currentTarget.select()}
+                    style={{ minHeight: '200px', maxHeight: '350px' }}
                   />
                 </div>
               )}
@@ -210,13 +300,56 @@ export const ContributionModal: React.FC<ContributionModalProps> = ({
 
               <div className="form-group">
                 <label htmlFor="contributedImage">Upload Zoomed Image (optional):</label>
-                <input
-                  type="file"
-                  id="contributedImage"
-                  name="contributedImage"
-                  accept="image/*"
-                />
+                <div 
+                  className={`drag-drop-zone ${dragActive ? 'drag-active' : ''}`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    id="contributedImage"
+                    name="contributedImage"
+                    accept="image/*"
+                    className="file-input"
+                  />
+                  <div className="drag-drop-content">
+                    <p>📁 Click to browse or drag & drop an image</p>
+                    <p>🌐 You can drag images directly from websites!</p>
+                  </div>
+                </div>
                 <small>Upload a more detailed image of this hex region</small>
+                
+                {draggedImage && (
+                  <div className="dragged-image-preview">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <p>Dragged image preview:</p>
+                      <button 
+                        type="button" 
+                        onClick={() => setDraggedImage(null)}
+                        style={{ 
+                          background: '#e74c3c', 
+                          color: 'white', 
+                          border: 'none', 
+                          padding: '4px 8px', 
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <img 
+                      src={draggedImage} 
+                      alt="Dragged content preview"
+                      style={{ maxWidth: '200px', border: '2px solid #4CAF50' }}
+                    />
+                  </div>
+                )}
+                
                 {userHexContribution?.contributedImageFilename && (
                   <div className="current-image">
                     <p>Current image:</p>
